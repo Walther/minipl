@@ -1,7 +1,7 @@
-use anyhow::{Error, Result};
+use anyhow::{Result};
 use camino::Utf8PathBuf;
-use std::fs::{self, File};
-use tracing::{debug, error, Level};
+use std::fs::{self};
+
 
 pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     let file = fs::read_to_string(path)?;
