@@ -1,7 +1,11 @@
+use anyhow::{anyhow, Result};
 use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand};
 use tracing::{debug, error, Level};
 use tracing_subscriber::fmt::time;
+
+mod run;
+use run::*;
 
 /// Interpreter & Compiler for the Mini-PL programming language.
 /// Written for the Spring 2022 Compilers course at University of Helsinki
@@ -37,7 +41,7 @@ struct GlobalOpts {
     debug: bool,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let app = App::parse();
 
     if app.global_opts.debug {
@@ -56,11 +60,18 @@ fn main() {
         Command::Run { path } => {
             debug!("Run subcommand called");
             debug!("File path: {}", path);
+            match run(path) {
+                Ok(_) => (),
+                Err(error) => error!("{error}"),
+            }
         }
         Command::Build { path } => {
             debug!("Build subcommand called");
             debug!("File path: {}", path);
             error!("Compiler mode not implemented yet");
+            return Err(anyhow!("Compiler mode not implemented yet"));
         }
     }
+
+    Ok(())
 }
