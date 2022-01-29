@@ -1,7 +1,9 @@
+use std::{iter::Peekable, str::Chars};
+
 use anyhow::{anyhow, Error};
 
 /// All tokens of the Mini-PL programming language.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Token {
     // Single-character tokens
     And,
@@ -45,14 +47,19 @@ use Token::*;
 
 pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
-    let _iter = input.chars().peekable();
+    let mut iter: Peekable<Chars> = input.chars().peekable();
+    while iter.peek().is_some() {
+        match scan_token(&mut iter) {
+            Ok(token) => tokens.push(token),
+            Err(error) => return Err(error),
+        }
+    }
 
     tokens.push(Token::EOF);
     Ok(tokens)
 }
 
-pub fn scan_token(str: &str) -> Result<Token, Error> {
-    let mut iter = str.chars().peekable();
+pub fn scan_token(iter: &mut Peekable<Chars>) -> Result<Token, Error> {
     let char = match iter.next() {
         Some(it) => it,
         None => return Err(anyhow!("Tried to scan a token with no characters left")),
@@ -108,58 +115,70 @@ mod tests {
 
     #[test]
     fn single_character_tokens() {
-        let token = scan_token("&").unwrap();
+        let token = parse("&").unwrap()[0];
         assert_eq!(token, And);
 
-        let token = scan_token(":").unwrap();
+        let token = parse(":").unwrap()[0];
         assert_eq!(token, Colon);
 
-        let token = scan_token("=").unwrap();
+        let token = parse("=").unwrap()[0];
         assert_eq!(token, Equal);
 
-        let token = scan_token("-").unwrap();
+        let token = parse("-").unwrap()[0];
         assert_eq!(token, Minus);
 
-        let token = scan_token("(").unwrap();
+        let token = parse("(").unwrap()[0];
         assert_eq!(token, ParenLeft);
 
-        let token = scan_token(")").unwrap();
+        let token = parse(")").unwrap()[0];
         assert_eq!(token, ParenRight);
 
-        let token = scan_token("+").unwrap();
+        let token = parse("+").unwrap()[0];
         assert_eq!(token, Plus);
 
-        let token = scan_token(";").unwrap();
+        let token = parse(";").unwrap()[0];
         assert_eq!(token, Semicolon);
 
-        let token = scan_token("/").unwrap();
+        let token = parse("/").unwrap()[0];
         assert_eq!(token, Slash);
 
-        let token = scan_token("*").unwrap();
+        let token = parse("*").unwrap()[0];
         assert_eq!(token, Star);
     }
 
     #[test]
     fn comments() {
-        let token = scan_token("//").unwrap();
+        let token = parse("//").unwrap()[0];
         assert_eq!(token, Comment);
 
-        let token = scan_token("// I am a comment").unwrap();
+        let token = parse("// I am a comment").unwrap()[0];
         assert_eq!(token, Comment);
     }
 
     #[test]
     fn whitespace() {
-        let token = scan_token(" ").unwrap();
+        let token = parse(" ").unwrap()[0];
         assert_eq!(token, Whitespace);
 
-        let token = scan_token("\n").unwrap();
+        let token = parse("\n").unwrap()[0];
         assert_eq!(token, Whitespace);
 
-        let token = scan_token("\r").unwrap();
+        let token = parse("\r").unwrap()[0];
         assert_eq!(token, Whitespace);
 
-        let token = scan_token("\t").unwrap();
+        let token = parse("\t").unwrap()[0];
         assert_eq!(token, Whitespace);
+    }
+
+    #[test]
+    fn longer_code() {
+        let tokens = parse("// This is a comment").unwrap();
+        assert_eq!(tokens, vec![Comment, EOF]);
+
+        let tokens = parse("(( ))").unwrap();
+        assert_eq!(
+            tokens,
+            vec![ParenLeft, ParenLeft, Whitespace, ParenRight, ParenRight, EOF]
+        );
     }
 }
