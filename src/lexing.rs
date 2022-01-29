@@ -33,6 +33,10 @@ pub enum Token {
     String,
     Var,
 
+    // Ignorables // TODO: is this necessary?
+    Comment,
+    Whitespace,
+
     // End of file marker
     EOF,
 }
@@ -48,7 +52,8 @@ pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
 }
 
 pub fn scan_token(str: &str) -> Result<Token, Error> {
-    let char = match str.chars().next() {
+    let mut iter = str.chars().peekable();
+    let char = match iter.next() {
         Some(it) => it,
         None => return Err(anyhow!("Tried to scan a token with no characters left")),
     };
@@ -63,13 +68,34 @@ pub fn scan_token(str: &str) -> Result<Token, Error> {
         ':' => Ok(Colon),
         ';' => Ok(Semicolon),
         '/' => {
-            // TODO: Handle comments
-            Ok(Slash)
+            // Two-slash comments: skip until end of line
+            if let Some(next) = iter.peek() {
+                if next == &'/' {
+                    while let Some(next) = iter.peek() {
+                        if next == &'\n' {
+                            break;
+                        } else {
+                            iter.next();
+                        }
+                    }
+                    return Ok(Comment);
+                }
+            }
+            // TODO: Handle multiline comments
+
+            // Otherwise, it's just a Slash
+            return Ok(Slash);
         }
         '*' => Ok(Star),
         '=' => Ok(Equal),
 
         // TODO: handle multi-character tokens, identifiers, etc
+
+        // Ignore whitespace
+        ' ' | '\n' | '\r' | '\t' => {
+            // TODO: non-token whitespace
+            Ok(Whitespace)
+        }
 
         // TODO: better error handling; show source of errors etc
         _ => Err(anyhow!("Unrecognized token {char}")),
@@ -111,5 +137,29 @@ mod tests {
 
         let token = scan_token("*").unwrap();
         assert_eq!(token, Star);
+    }
+
+    #[test]
+    fn comments() {
+        let token = scan_token("//").unwrap();
+        assert_eq!(token, Comment);
+
+        let token = scan_token("// I am a comment").unwrap();
+        assert_eq!(token, Comment);
+    }
+
+    #[test]
+    fn whitespace() {
+        let token = scan_token(" ").unwrap();
+        assert_eq!(token, Whitespace);
+
+        let token = scan_token("\n").unwrap();
+        assert_eq!(token, Whitespace);
+
+        let token = scan_token("\r").unwrap();
+        assert_eq!(token, Whitespace);
+
+        let token = scan_token("\t").unwrap();
+        assert_eq!(token, Whitespace);
     }
 }
