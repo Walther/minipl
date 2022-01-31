@@ -24,7 +24,7 @@ pub enum RawToken {
 
     // Literals
     Identifier,
-    Number,
+    Number(i64),
     Text(String),
 
     // Keywords
@@ -49,6 +49,7 @@ pub enum RawToken {
     EOF,
 }
 
+use tracing::debug;
 use RawToken::*;
 
 /// A richer [Token] type that wraps the [RawToken] type, and holds more metadata.
@@ -92,7 +93,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
 }
 
 pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error> {
-    let (location, char) = match iter.next() {
+    let &(location, char) = match iter.peek() {
         Some(it) => it,
         None => return Err(anyhow!("Tried to scan a token with no characters left")),
     };
@@ -109,19 +110,21 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         '/' => {
             // Two-slash comments: skip until end of line
             let mut end = location;
-            if let Some((_, next)) = iter.peek() {
-                if next == &'/' {
-                    while let Some((_, next)) = iter.peek() {
-                        if next == &'\n' {
-                            let (eol, _) = iter.next().unwrap();
-                            end = eol;
-                            break;
-                        } else {
-                            iter.next();
-                        }
+            // Consume the first slash that we peeked for the match
+            iter.next();
+            // Consume the second slash if it exists
+            if let Some((_, _)) = iter.next_if(|&(_, char)| char == '/') {
+                while let Some((_, next)) = iter.peek() {
+                    if next == &'\n' {
+                        let (eol, _) = iter.next().unwrap();
+                        end = eol;
+                        break;
+                    } else {
+                        iter.next();
                     }
-                    return Ok(Token::new(Comment, (location, end)));
                 }
+                // We consumed two slashes, so this is a comment
+                return Ok(Token::new(Comment, (location, end)));
             }
             // TODO: Handle multiline comments
 
@@ -131,8 +134,11 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         '*' => Token::new(Star, (location, location + 1)),
         '=' => Token::new(Equal, (location, location + 1)),
 
-        // TODO: handle multi-character tokens, identifiers, etc
         // Multi-character tokens
+
+        // Numbers
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => scan_number(iter),
+        // Text
         '"' => scan_string(iter),
 
         // Ignore whitespace
@@ -141,34 +147,69 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
             Token::new(Whitespace, (location, location + 1))
         }
 
-        // TODO: better error handling; show source of errors etc
-        _ => Token::new(
-            Error(format!("Unknown token {char}")),
-            (location, location + 1),
-        ),
+        _ => {
+            // Consume and report the unknown token
+            iter.next();
+            Token::new(
+                Error(format!("Unknown token {char}")),
+                (location, location + 1),
+            )
+        }
     };
 
+    // If we peeked a single-character token, other than slash, consume it.
+    // This is required because the multi-character token parsing helper functions need the iterator with the first char included.
+    // Slash is an exception because the comment parsing handling ends up always consuming the first slash.
+    if matches!(
+        char,
+        '&' | '-' | '(' | ')' | '+' | ':' | ';' | '*' | '=' | ' ' | '\n' | '\r' | '\t'
+    ) {
+        iter.next();
+    }
+
+    debug!("Successfully lexed a token: {token:?}");
     Ok(token)
+}
+
+/// Internal helper function for scanning a number literal.
+fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+    // TODO: remove unwraps where possible
+
+    let mut number = String::new();
+    let &(start, _) = iter.peek().unwrap();
+    let mut end = start;
+
+    while let Some(&(location, char)) = iter.peek() {
+        if char.is_ascii_digit() {
+            end = location + 1;
+            number.push(char);
+            iter.next();
+        } else {
+            break;
+        }
+    }
+
+    let number: i64 = number.parse().unwrap();
+
+    Token::new(Number(number), (start, end))
 }
 
 /// Internal helper function for scanning a string literal. Returns a [Token] with [RawToken::Text(String)]
 fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps where possible
     // TODO: parse / evaluate escape characters
+    // TODO: technically we might need to ban literal multiline strings i.e. error on newline chars unless escaped?
 
     let mut contents = String::new();
-    let (start, _) = iter.peek().unwrap();
-    let start = *start - 1; // String starts with the quote that we consumed in the match before arriving here
+    let (start, _) = iter.next().unwrap(); // Consume the first quote
     let mut end = start;
-    while let Some((_, next)) = iter.peek() {
-        // TODO: technically we might need to ban literal multiline strings i.e. error on newline chars unless escaped?
-        if next == &'"' {
-            let (location, _) = iter.next().unwrap(); // Consume the ending quote
-            end = location;
+    while let Some(&(location, char)) = iter.peek() {
+        if char == '"' {
+            end = location + 1;
             break;
         } else {
-            let (_, c) = iter.next().unwrap();
-            contents.push(c);
+            contents.push(char);
+            iter.next();
         }
     }
 
@@ -253,15 +294,54 @@ mod tests {
     }
 
     #[test]
+    fn number() {
+        let token = &parse("1").unwrap()[0];
+        let expected = Token::new(Number(1), (0, 1));
+        assert_eq!(token, &expected);
+
+        let token = &parse("1234567890").unwrap()[0];
+        let expected = Token::new(Number(1234567890), (0, 10));
+        assert_eq!(token, &expected);
+    }
+
+    #[test]
     fn string() {
         // NOTE: original source code will have the literal quotes
-        let token = &parse("\"I am a string of text\"").unwrap()[0];
-        let expected = Token::new(Text("I am a string of text".into()), (0, 22));
+        let token = &parse("\"\"").unwrap()[0];
+        let expected = Token::new(Text("".into()), (0, 2));
         assert_eq!(token, &expected);
 
         // FIXME: should probably be prohibited? Unclear spec...
         let token = &parse("\"multi\nline\"").unwrap()[0];
-        let expected = Token::new(Text("multi\nline".into()), (0, 11));
+        let expected = Token::new(Text("multi\nline".into()), (0, 12));
         assert_eq!(token, &expected);
+    }
+
+    #[test]
+    fn simple_math1() {
+        let tokens = &parse("1+2").unwrap();
+        let expected = vec![
+            Token::new(Number(1), (0, 1)),
+            Token::new(Plus, (1, 2)),
+            Token::new(Number(2), (2, 3)),
+            Token::new(EOF, (3, 3)),
+        ];
+        assert_eq!(tokens, &expected);
+    }
+
+    #[test]
+    fn simple_math2() {
+        let tokens = &parse("2*2/2=2").unwrap();
+        let expected = vec![
+            Token::new(Number(2), (0, 1)),
+            Token::new(Star, (1, 2)),
+            Token::new(Number(2), (2, 3)),
+            Token::new(Slash, (3, 4)),
+            Token::new(Number(2), (4, 5)),
+            Token::new(Equal, (5, 6)),
+            Token::new(Number(2), (6, 7)),
+            Token::new(EOF, (7, 7)),
+        ];
+        assert_eq!(tokens, &expected);
     }
 }
