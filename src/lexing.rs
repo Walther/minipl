@@ -68,6 +68,11 @@ impl Token {
     }
 }
 
+/// Main entrypoint of the lexer. Given an input string, parses it into a Vec of [Token]s.
+///
+/// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
+/// Any parse errors for the source code will be returned as [Token]s with type [RawToken::Error] in order to recover error locations etc.
+/// for use in error reporting for the user.
 pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
     let length = input.len();
@@ -146,8 +151,11 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     Ok(token)
 }
 
+/// Internal helper function for scanning a string literal. Returns a [Token] with [RawToken::Text(String)]
 fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps where possible
+    // TODO: parse / evaluate escape characters
+
     let mut contents = String::new();
     let (start, _) = iter.peek().unwrap();
     let start = *start - 1; // String starts with the quote that we consumed in the match before arriving here
