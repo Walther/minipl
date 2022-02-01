@@ -10,24 +10,34 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path)?;
     let tokens = parse(&source)?;
+    let mut colors = ColorGenerator::new();
 
-    for token in tokens {
-        // Print all error reports
-        if let RawToken::Error(message) = token.token {
-            Report::build(ReportKind::Error, &path, token.location.0)
-                .with_message(message.clone())
-                .with_label(
+    // 2. Error reporting for lexing
+    if tokens
+        .iter()
+        .any(|token| matches!(token.token, RawToken::Error(_)))
+    {
+        let mut report =
+            Report::build(ReportKind::Error, &path, 0).with_message("Lexing errors found");
+
+        for token in tokens {
+            if let RawToken::Error(message) = token.token {
+                report = report.with_label(
                     Label::new((&path, (token.location.0)..(token.location.1)))
-                        .with_message(message),
+                        .with_message(message)
+                        .with_color(colors.next()),
                 )
-                .finish()
-                .print((&path, Source::from(&source)))
-                .unwrap();
+            }
         }
+
+        report
+            .finish()
+            .print((&path, Source::from(&source)))
+            .unwrap();
     }
 
-    // TODO: 2. Semantic analysis
-    // TODO: 3. Execution
+    // TODO: n. Semantic analysis
+    // TODO: n. Execution
 
     Ok(())
 }
@@ -37,9 +47,12 @@ pub(crate) fn lex(path: Utf8PathBuf) -> Result<()> {
     let tokens = parse(&source)?;
 
     // Ignore certain elements when printing the lexing report
-    let tokens = tokens
-        .iter()
-        .filter(|token| !matches!(token.token, RawToken::Whitespace | RawToken::Semicolon));
+    let tokens = tokens.iter().filter(|token| {
+        !matches!(
+            token.token,
+            RawToken::Whitespace | RawToken::Semicolon | RawToken::EOF
+        )
+    });
 
     let mut report =
         Report::build(ReportKind::Advice, &path, 0).with_message("Lexing report".to_string());
