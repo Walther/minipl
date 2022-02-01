@@ -4,8 +4,8 @@ use clap::{Args, Parser, Subcommand};
 use tracing::{debug, error, Level};
 use tracing_subscriber::fmt::time;
 
-mod run;
-use run::*;
+mod commands;
+use commands::*;
 
 /// Interpreter & Compiler for the Mini-PL programming language.
 /// Written for the Spring 2022 Compilers course at University of Helsinki
@@ -21,6 +21,12 @@ pub struct App {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Run the lexer on the given file
+    Lex {
+        /// The path to the file to scan
+        path: Utf8PathBuf,
+    },
+
     /// Run a given file with the interpreter
     Run {
         /// The path to the file to run
@@ -57,6 +63,14 @@ fn main() -> Result<()> {
     }
 
     match app.command {
+        Command::Lex { path } => {
+            debug!("Lex subcommand called");
+            debug!("File path: {}", path);
+            match lex(path) {
+                Ok(_) => (),
+                Err(error) => error!("{error}"),
+            }
+        }
         Command::Run { path } => {
             debug!("Run subcommand called");
             debug!("File path: {}", path);

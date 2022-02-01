@@ -5,10 +5,9 @@ use std::{
 };
 
 use anyhow::{anyhow, Error};
-use derive_more::Display;
 
 /// All raw tokens of the Mini-PL programming language.
-#[derive(Debug, Display, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RawToken {
     // Single-character tokens
     And,
