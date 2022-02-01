@@ -111,36 +111,13 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         '=' => Token::new(Equal, (location, location + 1)),
         // NOTE: we consume the char for these ^ at the end with a glob match in order to reduce line noise
 
-        // Slash: just a slash or possibly comments
-        '/' => {
-            // Two-slash comments: skip until end of line
-            let mut end = location;
-            // Consume the first slash that we peeked for the match
-            iter.next();
-            // Consume the second slash if it exists
-            if let Some((_, _)) = iter.next_if(|&(_, char)| char == '/') {
-                while let Some((_, next)) = iter.peek() {
-                    if next == &'\n' {
-                        let (eol, _) = iter.next().unwrap();
-                        end = eol;
-                        break;
-                    } else {
-                        iter.next();
-                    }
-                }
-                // We consumed two slashes, so this is a comment
-                return Ok(Token::new(Comment, (location, end)));
-            }
-            // TODO: Handle multiline comments
+        // Slash: possibly a comment, or just a Slash
+        '/' => scan_slash(iter),
 
-            // Otherwise, it's just a Slash
-            Token::new(Slash, (location, location + 1))
-        }
+        // Number literal
+        '0'..='9' => scan_number(iter),
 
-        // Numbers
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => scan_number(iter),
-
-        // Text
+        // Text i.e. String literal
         '"' => scan_string(iter),
 
         // Ignore whitespace
@@ -171,6 +148,31 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     Ok(token)
 }
 
+/// Internal helper function for scanning a lexeme that starts with a slash. This could be a [Comment], or just a [Slash].
+fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+    // TODO: remove unwraps
+    // Grab the start location from the current, unconsumed slash
+    let &(location, _) = iter.peek().unwrap();
+    let mut end = location;
+    // Consume the first slash
+    iter.next();
+    // Do we have a second slash?
+    if let Some((_, _)) = iter.next_if(|&(_, char)| char == '/') {
+        // Second slash found, consume until end of line
+        for (location, next) in iter {
+            if next == '\n' {
+                end = location;
+                break;
+            }
+        }
+        return Token::new(Comment, (location, end));
+    }
+    // TODO: multi-line comments with nesting support
+
+    // Not a comment, just a slash
+    Token::new(Slash, (location, location + 1))
+}
+
 /// Internal helper function for scanning a number literal.
 fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps where possible
@@ -179,14 +181,9 @@ fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     let &(start, _) = iter.peek().unwrap();
     let mut end = start;
 
-    while let Some(&(location, char)) = iter.peek() {
-        if char.is_ascii_digit() {
-            end = location + 1;
-            number.push(char);
-            iter.next();
-        } else {
-            break;
-        }
+    while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_digit()) {
+        end = location + 1;
+        number.push(char);
     }
 
     let number: i64 = number.parse().unwrap();
