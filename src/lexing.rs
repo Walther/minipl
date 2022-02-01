@@ -107,6 +107,11 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         '+' => Token::new(Plus, (location, location + 1)),
         ':' => Token::new(Colon, (location, location + 1)),
         ';' => Token::new(Semicolon, (location, location + 1)),
+        '*' => Token::new(Star, (location, location + 1)),
+        '=' => Token::new(Equal, (location, location + 1)),
+        // NOTE: we consume the char for these ^ at the end with a glob match in order to reduce line noise
+
+        // Slash: just a slash or possibly comments
         '/' => {
             // Two-slash comments: skip until end of line
             let mut end = location;
@@ -131,24 +136,22 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
             // Otherwise, it's just a Slash
             Token::new(Slash, (location, location + 1))
         }
-        '*' => Token::new(Star, (location, location + 1)),
-        '=' => Token::new(Equal, (location, location + 1)),
-
-        // Multi-character tokens
 
         // Numbers
         '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => scan_number(iter),
+
         // Text
         '"' => scan_string(iter),
 
         // Ignore whitespace
         ' ' | '\n' | '\r' | '\t' => {
-            // TODO: non-token whitespace
+            iter.next();
             Token::new(Whitespace, (location, location + 1))
         }
 
+        // Unknown token
         _ => {
-            // Consume and report the unknown token
+            // Consume and report
             iter.next();
             Token::new(
                 Error(format!("Unknown token {char}")),
@@ -160,10 +163,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     // If we peeked a single-character token, other than slash, consume it.
     // This is required because the multi-character token parsing helper functions need the iterator with the first char included.
     // Slash is an exception because the comment parsing handling ends up always consuming the first slash.
-    if matches!(
-        char,
-        '&' | '-' | '(' | ')' | '+' | ':' | ';' | '*' | '=' | ' ' | '\n' | '\r' | '\t'
-    ) {
+    if matches!(char, '&' | '-' | '(' | ')' | '+' | ':' | ';' | '*' | '=') {
         iter.next();
     }
 
