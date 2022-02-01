@@ -5,16 +5,12 @@ use minipl::lexing::*;
 use anyhow::Result;
 use ariadne::{Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
-use tracing::debug;
 
 pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     let source: String = fs::read_to_string(&path)?;
     let tokens = parse(&source)?;
 
     for token in tokens {
-        // Debug trace print each token
-        debug!("{token:?}");
-
         // Print all error reports
         if let RawToken::Error(message) = token.token {
             Report::build(ReportKind::Error, &path, token.location.0)
