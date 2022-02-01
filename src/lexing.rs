@@ -44,7 +44,7 @@ pub enum RawToken {
     String,
     Var,
 
-    // Ignorables // TODO: is this necessary?
+    // Ignorables
     Comment,
     Error(String),
     Whitespace,
@@ -129,11 +129,8 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         // Text i.e. String literal
         '"' => scan_string(iter),
 
-        // Whitespace
-        ' ' | '\n' | '\r' | '\t' => {
-            iter.next();
-            Token::new(Whitespace, (location, location + 1))
-        }
+        // Whitespace - note https://doc.rust-lang.org/std/primitive.char.html#method.is_ascii_whitespace
+        ' ' | '\t' | '\n' | '\u{000C}' | '\r' => scan_whitespace(iter),
 
         // Identifier or keyword
         'a'..='z' | 'A'..='Z' => scan_identifier(iter),
@@ -251,6 +248,18 @@ fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     Token::new(Text(contents), (start, end))
 }
 
+/// Internal helper function for scanning and skipping over whitespace. Greedy / maximal munch.
+fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+    let &(start, _) = iter.peek().unwrap();
+    let mut end = start;
+
+    while let Some((location, _)) = iter.next_if(|(_, char)| char.is_ascii_whitespace()) {
+        end = location + 1;
+    }
+
+    Token::new(Whitespace, (start, end))
+}
+
 fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Grab the start location from the current, unconsumed char
     let &(location, _) = iter.peek().unwrap();
@@ -354,6 +363,10 @@ mod tests {
 
         let token = &parse("\t").unwrap()[0];
         let expected = Token::new(Whitespace, (0, 1));
+        assert_eq!(token, &expected);
+
+        let token = &parse(" \n \n ").unwrap()[0];
+        let expected = Token::new(Whitespace, (0, 5));
         assert_eq!(token, &expected);
     }
 
