@@ -42,17 +42,19 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn lex(path: Utf8PathBuf) -> Result<()> {
+pub(crate) fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     let source: String = fs::read_to_string(&path)?;
-    let tokens = parse(&source)?;
+    let mut tokens = parse(&source)?;
 
-    // Ignore certain elements when printing the lexing report
-    let tokens = tokens.iter().filter(|token| {
-        !matches!(
-            token.token,
-            RawToken::Whitespace | RawToken::Semicolon | RawToken::EOF
-        )
-    });
+    // Ignore certain elements when printing the lexing report, unless in verbose mode
+    if !verbose {
+        tokens.retain(|token| {
+            !matches!(
+                token.token,
+                RawToken::Whitespace | RawToken::Semicolon | RawToken::EOF
+            )
+        });
+    }
 
     let mut report =
         Report::build(ReportKind::Advice, &path, 0).with_message("Lexing report".to_string());

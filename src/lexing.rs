@@ -56,7 +56,7 @@ use tracing::debug;
 use RawToken::*;
 
 /// A richer [Token] type that wraps the [RawToken] type, and holds more metadata.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token: RawToken,
     pub location: (usize, usize),

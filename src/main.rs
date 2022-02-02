@@ -25,6 +25,9 @@ enum Command {
     Lex {
         /// The path to the file to scan
         path: Utf8PathBuf,
+        #[clap(long, short)]
+        /// Verbose mode prints all lexemes, including e.g. whitespace and so on
+        verbose: bool,
     },
 
     /// Run a given file with the interpreter
@@ -63,10 +66,10 @@ fn main() -> Result<()> {
     }
 
     match app.command {
-        Command::Lex { path } => {
+        Command::Lex { path, verbose } => {
             debug!("Lex subcommand called");
             debug!("File path: {}", path);
-            match lex(path) {
+            match lex(path, verbose) {
                 Ok(_) => (),
                 Err(error) => error!("{error}"),
             }
