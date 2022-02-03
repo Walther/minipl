@@ -10,63 +10,99 @@ use anyhow::{anyhow, Error};
 #[derive(Debug, Clone, PartialEq)]
 pub enum RawToken {
     // Single-character tokens
+    /// `&`
     And,
+    /// `:`
     Colon,
+    /// `=`
     Equal,
+    /// `-`
     Minus,
+    /// `(`
     ParenLeft,
+    /// `)`
     ParenRight,
+    /// `+`
     Plus,
+    /// `;`
     Semicolon,
+    /// `/`
     Slash,
+    /// `*`
     Star,
 
     // Multi-character tokens
+    /// `:=`
     Assign,
+    /// `..`
     Range,
 
     // Literals
+    /// Identifier, e.g. a variable name
     Identifier(String),
+    /// Literal number. Internal type i64
     Number(i64),
+    /// Text, i.e. a string
     Text(String),
 
     // Keywords
+    /// `assert`
     Assert,
+    /// `bool`
     Bool,
+    /// `do`
     Do,
+    /// `end`
     End,
+    /// `for`
     For,
+    /// `in`
     In,
+    /// `int`
     Int,
+    /// `print
     Print,
+    /// `read`
     Read,
+    /// `string`
     String,
+    /// `var`
     Var,
 
     // Ignorables
+    /// Comment type. Exists for the internal convenience of the lexer.
     Comment,
+    /// Error type. Exists for propagating parser errors with helpful messages to the user.
     Error(String),
+    /// Whitespace type. Exists for the internal convenience of the lexer.
     Whitespace,
 
     // End of file marker
+    /// End of file marker. Exists for the internal convenience of the lexer.
     EOF,
 }
 
 use tracing::debug;
 use RawToken::*;
 
-/// A richer [Token] type that wraps the [RawToken] type, and holds more metadata.
+/// A richer [Token] type that wraps the [`RawToken`] type, and holds more metadata.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
+    /// The raw token itself
     pub token: RawToken,
+    /// Location, a tuple of start and end. An example single-letter token would have location `(0,1)`.
     pub location: (usize, usize),
 }
 
 impl Token {
+    #[must_use]
+    /// Creates a new [Token] type, when given a [`RawToken`] and a location `(start, end)`
     pub fn new(token: RawToken, location: (usize, usize)) -> Self {
         Self { token, location }
     }
 
+    #[must_use]
+    /// Helper method for filtering [`Error`] types for error message reporting.
     pub fn is_error(&self) -> bool {
         matches!(self.token, Error(_))
     }
@@ -74,8 +110,9 @@ impl Token {
 
 /// Main entrypoint of the lexer. Given an input string, parses it into a Vec of [Token]s.
 ///
+/// # Errors
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
-/// Any parse errors for the source code will be returned as [Token]s with type [RawToken::Error] in order to recover error locations etc.
+/// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`] in order to recover error locations etc.
 /// for use in error reporting for the user.
 pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
@@ -95,6 +132,12 @@ pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
     Ok(tokens)
 }
 
+/// The main helper function of the lexer, the function that `parse()` calls in a loop.
+///
+/// # Errors
+/// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
+/// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`] in order to recover error locations etc.
+/// for use in error reporting for the user.
 pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error> {
     let &(location, char) = match iter.peek() {
         Some(it) => it,
@@ -157,7 +200,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
 }
 
 /// Internal helper function for scanning a lexeme that starts with a colon. This could be an [Assign], or just a [Colon].
-fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+pub fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Consume this token to peek the next
     let (location, _) = iter.next().unwrap();
     // Is this an Assign operator?
@@ -170,7 +213,7 @@ fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 }
 
 /// Internal helper function for scanning a lexeme that starts with a dot. This could be a [Range], or a lexing error.
-fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+pub fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Consume this token to peek the next
     let (location, _) = iter.next().unwrap();
     // Is this a Range operator?
@@ -186,7 +229,7 @@ fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 }
 
 /// Internal helper function for scanning a lexeme that starts with a slash. This could be a [Comment], or just a [Slash].
-fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+pub fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps
     // Consume the first slash & grab the location
     let (location, _) = iter.next().unwrap();
@@ -209,7 +252,7 @@ fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 }
 
 /// Internal helper function for scanning a number literal.
-fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+pub fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps where possible
 
     let mut number = String::new();
@@ -226,8 +269,8 @@ fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     Token::new(Number(number), (start, end))
 }
 
-/// Internal helper function for scanning a string literal. Returns a [Token] with [RawToken::Text(String)]
-fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+/// Internal helper function for scanning a string literal. Returns a [Token] with [`RawToken::Text(String)`]
+pub fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps where possible
     // TODO: parse / evaluate escape characters
     // TODO: technically we might need to ban literal multiline strings i.e. error on newline chars unless escaped?
@@ -248,7 +291,7 @@ fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 }
 
 /// Internal helper function for scanning and skipping over whitespace. Greedy / maximal munch.
-fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+pub fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     let &(start, _) = iter.peek().unwrap();
     let mut end = start;
 
@@ -259,7 +302,8 @@ fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     Token::new(Whitespace, (start, end))
 }
 
-fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
+/// Internal helper function for scanning identifiers. Greedy / maximal munch, consumes all consecutive ascii-alphabetic chars.
+pub fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Grab the start location from the current, unconsumed char
     let &(location, _) = iter.peek().unwrap();
     let mut end = location;

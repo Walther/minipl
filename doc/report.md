@@ -9,3 +9,5 @@
 | 2022-01-28 | 2     | More lexing: single-line comments, whitespace            |
 | 2022-01-31 | 8     | More lexing: strings, error messages, numbers            |
 | 2022-02-01 | 8     | More lexing: keywords, assignment, ranges, lexing report |
+| 2022-02-02 | 1     | Small tweaks                                             |
+| 2022-02-03 | 2     | Small tweaks, lints, docs                                |

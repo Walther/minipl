@@ -1,3 +1,5 @@
+//! This library contains all the necessary functionality for interpreting the Mini-PL language as described on the Spring 2022 Compilers course at University of Helsinki.
+
 // Lints
 #![deny(clippy::all)]
 #![deny(explicit_outlives_requirements)]
@@ -7,6 +9,7 @@
 #![deny(unused_lifetimes)]
 #![deny(unused_qualifications)]
 #![deny(missing_debug_implementations)]
-// TODO:  #![deny(missing_docs)]
+#![deny(missing_docs)]
 
+/// The lexer for the Mini-PL language
 pub mod lexing;
