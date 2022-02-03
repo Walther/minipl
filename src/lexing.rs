@@ -68,7 +68,7 @@ impl Token {
     }
 
     pub fn is_error(&self) -> bool {
-        matches!(self.token, RawToken::Error(_))
+        matches!(self.token, Error(_))
     }
 }
 
