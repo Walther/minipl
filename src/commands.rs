@@ -9,7 +9,7 @@ use camino::Utf8PathBuf;
 pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path)?;
-    let tokens = parse(&source)?;
+    let tokens = scan(&source)?;
     let mut colors = ColorGenerator::new();
 
     // 2. Error reporting for lexing
@@ -44,7 +44,7 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
 
 pub(crate) fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     let source: String = fs::read_to_string(&path)?;
-    let mut tokens = parse(&source)?;
+    let mut tokens = scan(&source)?;
 
     // Ignore certain elements when printing the lexing report, unless in verbose mode
     if !verbose {

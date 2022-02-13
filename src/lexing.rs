@@ -5,6 +5,23 @@ use std::{
 };
 
 use anyhow::{anyhow, Error};
+use tracing::debug;
+use RawToken::*;
+
+mod colon;
+mod identifier;
+mod number;
+mod range;
+mod slash;
+mod string;
+mod whitespace;
+use colon::scan_colon;
+use identifier::scan_identifier;
+use number::scan_number;
+use range::scan_range;
+use slash::scan_slash;
+use string::scan_string;
+use whitespace::scan_whitespace;
 
 /// All raw tokens of the Mini-PL programming language.
 #[derive(Debug, Clone, PartialEq)]
@@ -82,9 +99,6 @@ pub enum RawToken {
     EOF,
 }
 
-use tracing::debug;
-use RawToken::*;
-
 /// A richer [Token] type that wraps the [`RawToken`] type, and holds more metadata.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
@@ -114,7 +128,7 @@ impl Token {
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
 /// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`] in order to recover error locations etc.
 /// for use in error reporting for the user.
-pub fn parse(input: &str) -> Result<Vec<Token>, Error> {
+pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
     let length = input.len();
     let mut iter: Peekable<Enumerate<Chars>> = input.chars().enumerate().peekable();
@@ -199,319 +213,56 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     Ok(token)
 }
 
-/// Internal helper function for scanning a lexeme that starts with a colon. This could be an [Assign], or just a [Colon].
-pub fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // Consume this token to peek the next
-    let (location, _) = iter.next().unwrap();
-    // Is this an Assign operator?
-    if let Some((end, _)) = iter.next_if(|&(_, char)| char == '=') {
-        Token::new(Assign, (location, end + 1))
-    } else {
-        // Otherwise, it's just a Colon
-        Token::new(Colon, (location, location + 1))
-    }
-}
-
-/// Internal helper function for scanning a lexeme that starts with a dot. This could be a [Range], or a lexing error.
-pub fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // Consume this token to peek the next
-    let (location, _) = iter.next().unwrap();
-    // Is this a Range operator?
-    if let Some((end, _)) = iter.next_if(|&(_, char)| char == '.') {
-        Token::new(Range, (location, end + 1))
-    } else {
-        // Otherwise, we have a parse error
-        Token::new(
-            Error("Expected another '.' for Range operator".into()),
-            (location, location + 2),
-        )
-    }
-}
-
-/// Internal helper function for scanning a lexeme that starts with a slash. This could be a [Comment], or just a [Slash].
-pub fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // TODO: remove unwraps
-    // Consume the first slash & grab the location
-    let (location, _) = iter.next().unwrap();
-    let mut end = location;
-    // Do we have a second slash?
-    if let Some((_, _)) = iter.next_if(|&(_, char)| char == '/') {
-        // Second slash found, consume until end of line
-        for (location, next) in iter {
-            if next == '\n' {
-                end = location;
-                break;
-            }
-        }
-        return Token::new(Comment, (location, end));
-    }
-    // TODO: multi-line comments with nesting support
-
-    // Not a comment, just a slash
-    Token::new(Slash, (location, location + 1))
-}
-
-/// Internal helper function for scanning a number literal.
-pub fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // TODO: remove unwraps where possible
-
-    let mut number = String::new();
-    let &(start, _) = iter.peek().unwrap();
-    let mut end = start;
-
-    while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_digit()) {
-        end = location + 1;
-        number.push(char);
-    }
-
-    let number: i64 = number.parse().unwrap();
-
-    Token::new(Number(number), (start, end))
-}
-
-/// Internal helper function for scanning a string literal. Returns a [Token] with [`RawToken::Text(String)`]
-pub fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // TODO: remove unwraps where possible
-    // TODO: parse / evaluate escape characters
-    // TODO: technically we might need to ban literal multiline strings i.e. error on newline chars unless escaped?
-
-    // Consume the first quote
-    let (start, _) = iter.next().unwrap();
-
-    // Consume and collect all characters within the string
-    let mut contents = String::new();
-    while let Some((_, char)) = iter.next_if(|&(_, char)| char != '"') {
-        contents.push(char);
-    }
-    // Consume the ending quote too
-    let (location, _) = iter.next().unwrap();
-    let end = location + 1;
-
-    Token::new(Text(contents), (start, end))
-}
-
-/// Internal helper function for scanning and skipping over whitespace. Greedy / maximal munch.
-pub fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    let &(start, _) = iter.peek().unwrap();
-    let mut end = start;
-
-    while let Some((location, _)) = iter.next_if(|(_, char)| char.is_ascii_whitespace()) {
-        end = location + 1;
-    }
-
-    Token::new(Whitespace, (start, end))
-}
-
-/// Internal helper function for scanning identifiers. Greedy / maximal munch, consumes all consecutive ascii-alphabetic chars.
-pub fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
-    // Grab the start location from the current, unconsumed char
-    let &(location, _) = iter.peek().unwrap();
-    let mut end = location;
-    // Consume all alphabetic characters; [maximal munch](https://craftinginterpreters.com/scanning.html)
-    let mut identifier = String::new();
-    while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_alphabetic()) {
-        identifier.push(char);
-        end = location + 1;
-    }
-
-    match identifier.as_ref() {
-        // Is this a keyword?
-        "assert" => Token::new(Assert, (location, end)),
-        "bool" => Token::new(Bool, (location, end)),
-        "do" => Token::new(Do, (location, end)),
-        "end" => Token::new(End, (location, end)),
-        "for" => Token::new(For, (location, end)),
-        "in" => Token::new(In, (location, end)),
-        "int" => Token::new(Int, (location, end)),
-        "print" => Token::new(Print, (location, end)),
-        "read" => Token::new(Read, (location, end)),
-        "string" => Token::new(String, (location, end)),
-        "var" => Token::new(Var, (location, end)),
-        // Otherwise, assume it's a user-defined identifier name
-        _ => Token::new(Identifier(identifier), (location, end)),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::lexing::*;
 
     #[test]
     fn single_character_tokens() {
-        let token = &parse("&").unwrap()[0];
+        let token = &scan("&").unwrap()[0];
         let expected = Token::new(And, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse(":").unwrap()[0];
+        let token = &scan(":").unwrap()[0];
         let expected = Token::new(Colon, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("=").unwrap()[0];
+        let token = &scan("=").unwrap()[0];
         let expected = Token::new(Equal, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("-").unwrap()[0];
+        let token = &scan("-").unwrap()[0];
         let expected = Token::new(Minus, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("(").unwrap()[0];
+        let token = &scan("(").unwrap()[0];
         let expected = Token::new(ParenLeft, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse(")").unwrap()[0];
+        let token = &scan(")").unwrap()[0];
         let expected = Token::new(ParenRight, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("+").unwrap()[0];
+        let token = &scan("+").unwrap()[0];
         let expected = Token::new(Plus, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse(";").unwrap()[0];
+        let token = &scan(";").unwrap()[0];
         let expected = Token::new(Semicolon, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("/").unwrap()[0];
+        let token = &scan("/").unwrap()[0];
         let expected = Token::new(Slash, (0, 1));
         assert_eq!(token, &expected);
 
-        let token = &parse("*").unwrap()[0];
+        let token = &scan("*").unwrap()[0];
         let expected = Token::new(Star, (0, 1));
         assert_eq!(token, &expected);
     }
 
     #[test]
-    fn comments() {
-        let token = &parse("//\n").unwrap()[0];
-        let expected = Token::new(Comment, (0, 2));
-        assert_eq!(token, &expected);
-
-        let token = &parse("// I am a comment\n").unwrap()[0];
-        let expected = Token::new(Comment, (0, 17));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn whitespace() {
-        let token = &parse(" ").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse("\n").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse("\r").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse("\t").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse(" \n \n ").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 5));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn number() {
-        let token = &parse("1").unwrap()[0];
-        let expected = Token::new(Number(1), (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse("1234567890").unwrap()[0];
-        let expected = Token::new(Number(1234567890), (0, 10));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn colon() {
-        let token = &parse(":").unwrap()[0];
-        let expected = Token::new(Colon, (0, 1));
-        assert_eq!(token, &expected);
-
-        let token = &parse(":=").unwrap()[0];
-        let expected = Token::new(Assign, (0, 2));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn range() {
-        let token = &parse(".").unwrap()[0];
-        let expected = Token::new(
-            Error("Expected another '.' for Range operator".into()),
-            (0, 2),
-        );
-        assert_eq!(token, &expected);
-
-        let token = &parse("..").unwrap()[0];
-        let expected = Token::new(Range, (0, 2));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn string() {
-        // NOTE: original source code will have the literal quotes
-        let token = &parse("\"\"").unwrap()[0];
-        let expected = Token::new(Text("".into()), (0, 2));
-        assert_eq!(token, &expected);
-
-        // FIXME: should probably be prohibited? Unclear spec...
-        let token = &parse("\"multi\nline\"").unwrap()[0];
-        let expected = Token::new(Text("multi\nline".into()), (0, 12));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
-    fn keywords() {
-        let token = &parse("assert").unwrap()[0];
-        let expected = Token::new(Assert, (0, 6));
-        assert_eq!(token, &expected);
-
-        let token = &parse("bool").unwrap()[0];
-        let expected = Token::new(Bool, (0, 4));
-        assert_eq!(token, &expected);
-
-        let token = &parse("do").unwrap()[0];
-        let expected = Token::new(Do, (0, 2));
-        assert_eq!(token, &expected);
-
-        let token = &parse("end").unwrap()[0];
-        let expected = Token::new(End, (0, 3));
-        assert_eq!(token, &expected);
-
-        let token = &parse("for").unwrap()[0];
-        let expected = Token::new(For, (0, 3));
-        assert_eq!(token, &expected);
-
-        let token = &parse("in").unwrap()[0];
-        let expected = Token::new(In, (0, 2));
-        assert_eq!(token, &expected);
-
-        let token = &parse("int").unwrap()[0];
-        let expected = Token::new(Int, (0, 3));
-        assert_eq!(token, &expected);
-
-        let token = &parse("print").unwrap()[0];
-        let expected = Token::new(Print, (0, 5));
-        assert_eq!(token, &expected);
-
-        let token = &parse("read").unwrap()[0];
-        let expected = Token::new(Read, (0, 4));
-        assert_eq!(token, &expected);
-
-        let token = &parse("string").unwrap()[0];
-        let expected = Token::new(String, (0, 6));
-        assert_eq!(token, &expected);
-
-        let token = &parse("var").unwrap()[0];
-        let expected = Token::new(Var, (0, 3));
-        assert_eq!(token, &expected);
-    }
-
-    #[test]
     fn simple_math1() {
-        let tokens = &parse("1+2").unwrap();
+        let tokens = &scan("1+2").unwrap();
         let expected = vec![
             Token::new(Number(1), (0, 1)),
             Token::new(Plus, (1, 2)),
@@ -523,7 +274,7 @@ mod tests {
 
     #[test]
     fn simple_math2() {
-        let tokens = &parse("2*2/2=2").unwrap();
+        let tokens = &scan("2*2/2=2").unwrap();
         let expected = vec![
             Token::new(Number(2), (0, 1)),
             Token::new(Star, (1, 2)),
