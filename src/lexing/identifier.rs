@@ -1,18 +1,7 @@
-use super::Assert;
-use super::Bool;
-use super::Do;
-use super::End;
-use super::For;
-use super::Identifier;
-use super::In;
-use super::Int;
-use super::Print;
-use super::Read;
-use super::String;
-use super::Token;
-use super::Var;
-use std::iter::Enumerate;
-use std::iter::Peekable;
+use super::{
+    Assert, Bool, Do, End, False, For, Identifier, In, Int, Print, Read, String, Token, True, Var,
+};
+use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 
 /// Internal helper function for scanning identifiers. Greedy / maximal munch, consumes all consecutive ascii-alphabetic chars.
@@ -33,12 +22,14 @@ pub(crate) fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
         "bool" => Token::new(Bool, (location, end)),
         "do" => Token::new(Do, (location, end)),
         "end" => Token::new(End, (location, end)),
+        "false" => Token::new(False, (location, end)),
         "for" => Token::new(For, (location, end)),
         "in" => Token::new(In, (location, end)),
         "int" => Token::new(Int, (location, end)),
         "print" => Token::new(Print, (location, end)),
         "read" => Token::new(Read, (location, end)),
         "string" => Token::new(String, (location, end)),
+        "true" => Token::new(True, (location, end)),
         "var" => Token::new(Var, (location, end)),
         // Otherwise, assume it's a user-defined identifier name
         _ => Token::new(Identifier(identifier), (location, end)),

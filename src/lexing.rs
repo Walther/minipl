@@ -29,6 +29,8 @@ pub enum RawToken {
     // Single-character tokens
     /// `&`
     And,
+    /// `!`
+    Bang,
     /// `:`
     Colon,
     /// `=`
@@ -73,6 +75,8 @@ pub enum RawToken {
     Do,
     /// `end`
     End,
+    /// `false`
+    False,
     /// `for`
     For,
     /// `in`
@@ -85,6 +89,8 @@ pub enum RawToken {
     Read,
     /// `string`
     String,
+    /// `true`
+    True,
     /// `var`
     Var,
 
@@ -169,6 +175,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     let token: Token = match char {
         // Single-character tokens
         '&' => Token::new(And, (location, location + 1)),
+        '!' => Token::new(Bang, (location, location + 1)),
         '<' => Token::new(Less, (location, location + 1)),
         '-' => Token::new(Minus, (location, location + 1)),
         '(' => Token::new(ParenLeft, (location, location + 1)),
@@ -214,7 +221,10 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     // If we peeked a single-character token, other than slash, consume it.
     // This is required because the multi-character token parsing helper functions need the iterator with the first char included.
     // Slash is an exception because the comment parsing handling ends up always consuming the first slash.
-    if matches!(char, '&' | '<' | '-' | '(' | ')' | '+' | ';' | '*' | '=') {
+    if matches!(
+        char,
+        '&' | '!' | '<' | '-' | '(' | ')' | '+' | ';' | '*' | '='
+    ) {
         iter.next();
     }
 
@@ -230,6 +240,10 @@ mod tests {
     fn single_character_tokens() {
         let token = &scan("&").unwrap()[0];
         let expected = Token::new(And, (0, 1));
+        assert_eq!(token, &expected);
+
+        let token = &scan("!").unwrap()[0];
+        let expected = Token::new(Bang, (0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(":").unwrap()[0];
