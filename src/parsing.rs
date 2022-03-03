@@ -105,10 +105,12 @@ pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr,
 }
 
 pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
-    if let Some(token) = tokens.peek() {
+    // At a terminal value, we need to always consume the token ?
+    // TODO: verify
+    if let Some(token) = tokens.next() {
         let tokentype = token.tokentype();
         match tokentype {
-            False | True | Number(_) | Text(_) => Ok(Expr::Literal(Literal::new(token.clone()))),
+            False | True | Number(_) | Text(_) => Ok(Expr::Literal(Literal::new(token))),
             ParenLeft => {
                 let expr = expression(tokens)?;
                 if let Some(_token) = tokens.next_if(|token| token.tokentype() == ParenRight) {
@@ -135,12 +137,9 @@ mod tests {
         let one = Token::new(one, location);
         let parsed = parse(vec![one.clone()]).unwrap();
         let expected = Expr::Literal(Literal::new(one));
-        dbg!(&parsed);
         assert_eq!(parsed, expected);
     }
 
-    /*
-    // Not implemented yet
     #[test]
     fn one_equals_one() {
         let one1 = Number(1);
@@ -163,8 +162,6 @@ mod tests {
             equal,
             Box::new(Expr::Literal(Literal::new(one2))),
         ));
-        dbg!(&parsed);
         assert_eq!(parsed, expected);
     }
-    */
 }
