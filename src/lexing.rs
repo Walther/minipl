@@ -33,6 +33,8 @@ pub enum RawToken {
     Colon,
     /// `=`
     Equal,
+    /// `<`
+    Less,
     /// `-`
     Minus,
     /// `(`
@@ -120,6 +122,12 @@ impl Token {
     pub fn is_error(&self) -> bool {
         matches!(self.token, Error(_))
     }
+
+    #[must_use]
+    /// Helper method for returning the [`RawToken`] type of the [Token]
+    pub fn tokentype(&self) -> RawToken {
+        self.token.clone()
+    }
 }
 
 /// Main entrypoint of the lexer. Given an input string, parses it into a Vec of [Token]s.
@@ -161,6 +169,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     let token: Token = match char {
         // Single-character tokens
         '&' => Token::new(And, (location, location + 1)),
+        '<' => Token::new(Less, (location, location + 1)),
         '-' => Token::new(Minus, (location, location + 1)),
         '(' => Token::new(ParenLeft, (location, location + 1)),
         ')' => Token::new(ParenRight, (location, location + 1)),
@@ -205,7 +214,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
     // If we peeked a single-character token, other than slash, consume it.
     // This is required because the multi-character token parsing helper functions need the iterator with the first char included.
     // Slash is an exception because the comment parsing handling ends up always consuming the first slash.
-    if matches!(char, '&' | '-' | '(' | ')' | '+' | ';' | '*' | '=') {
+    if matches!(char, '&' | '<' | '-' | '(' | ')' | '+' | ';' | '*' | '=') {
         iter.next();
     }
 
@@ -229,6 +238,10 @@ mod tests {
 
         let token = &scan("=").unwrap()[0];
         let expected = Token::new(Equal, (0, 1));
+        assert_eq!(token, &expected);
+
+        let token = &scan("<").unwrap()[0];
+        let expected = Token::new(Less, (0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("-").unwrap()[0];
