@@ -13,3 +13,5 @@
 
 /// The lexer for the Mini-PL language
 pub mod lexing;
+/// The parsing for the Mini-PL language
+pub mod parsing;
