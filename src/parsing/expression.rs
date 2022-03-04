@@ -40,8 +40,10 @@ pub struct Grouping {
 }
 
 impl Grouping {
-    pub fn new(expression: Box<Expr>) -> Self {
-        Self { expression }
+    pub fn new(expression: Expr) -> Self {
+        Self {
+            expression: Box::new(expression),
+        }
     }
 }
 
@@ -52,8 +54,11 @@ pub struct Unary {
 }
 
 impl Unary {
-    pub fn new(operator: Token, right: Box<Expr>) -> Self {
-        Self { operator, right }
+    pub fn new(operator: Token, right: Expr) -> Self {
+        Self {
+            operator,
+            right: Box::new(right),
+        }
     }
 }
 
@@ -65,11 +70,11 @@ pub struct Binary {
 }
 
 impl Binary {
-    pub fn new(left: Box<Expr>, operator: Token, right: Box<Expr>) -> Self {
+    pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
         Self {
-            left,
+            left: Box::new(left),
             operator,
-            right,
+            right: Box::new(right),
         }
     }
 }

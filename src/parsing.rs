@@ -31,7 +31,7 @@ pub fn equality(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Ex
             let operator = next.clone();
             tokens.next();
             let right = comparison(tokens)?;
-            expr = Expr::Binary(Binary::new(Box::new(expr), operator, Box::new(right)));
+            expr = Expr::Binary(Binary::new(expr, operator, right));
         } else {
             break;
         }
@@ -47,7 +47,7 @@ pub fn comparison(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<
             let operator = next.clone();
             tokens.next();
             let right = term(tokens)?;
-            expr = Expr::Binary(Binary::new(Box::new(expr), operator, Box::new(right)));
+            expr = Expr::Binary(Binary::new(expr, operator, right));
         } else {
             break;
         }
@@ -63,7 +63,7 @@ pub fn term(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, 
             let operator = next.clone();
             tokens.next();
             let right = factor(tokens)?;
-            expr = Expr::Binary(Binary::new(Box::new(expr), operator, Box::new(right)));
+            expr = Expr::Binary(Binary::new(expr, operator, right));
         } else {
             break;
         }
@@ -79,7 +79,7 @@ pub fn factor(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr
             let operator = next.clone();
             tokens.next();
             let right = unary(tokens)?;
-            expr = Expr::Binary(Binary::new(Box::new(expr), operator, Box::new(right)));
+            expr = Expr::Binary(Binary::new(expr, operator, right));
         } else {
             break;
         }
@@ -94,7 +94,7 @@ pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr,
             let operator = next.clone();
             tokens.next();
             let right = unary(tokens)?;
-            return Ok(Expr::Unary(Unary::new(operator, Box::new(right))));
+            return Ok(Expr::Unary(Unary::new(operator, right)));
         }
     } else {
         // What should happen here?
@@ -114,7 +114,7 @@ pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Exp
             ParenLeft => {
                 let expr = expression(tokens)?;
                 if let Some(_token) = tokens.next_if(|token| token.tokentype() == ParenRight) {
-                    Ok(Expr::Grouping(Grouping::new(Box::new(expr))))
+                    Ok(Expr::Grouping(Grouping::new(expr)))
                 } else {
                     Err(anyhow!("Expected ) after expression"))
                 }
@@ -158,9 +158,9 @@ mod tests {
 
         let parsed = parse(tokens).unwrap();
         let expected = Expr::Binary(Binary::new(
-            Box::new(Expr::Literal(Literal::new(one1))),
+            Expr::Literal(Literal::new(one1)),
             equal,
-            Box::new(Expr::Literal(Literal::new(one2))),
+            Expr::Literal(Literal::new(one2)),
         ));
         assert_eq!(parsed, expected);
     }
