@@ -132,9 +132,7 @@ mod tests {
 
     #[test]
     fn literal_one() {
-        let one = Number(1);
-        let location = (0, 1);
-        let one = Token::new(one, location);
+        let one = Token::new(Number(1), (0, 1));
         let parsed = parse(vec![one.clone()]).unwrap();
         let expected = Expr::Literal(Literal::new(one));
         assert_eq!(parsed, expected);
@@ -142,17 +140,9 @@ mod tests {
 
     #[test]
     fn one_equals_one() {
-        let one1 = Number(1);
-        let location = (0, 1);
-        let one1 = Token::new(one1, location);
-
-        let equal = Equal;
-        let location = (1, 2);
-        let equal = Token::new(equal, location);
-
-        let one2 = Number(1);
-        let location = (2, 3);
-        let one2 = Token::new(one2, location);
+        let one1 = Token::new(Number(1), (0, 1));
+        let equal = Token::new(Equal, (1, 2));
+        let one2 = Token::new(Number(1), (2, 3));
 
         let tokens = vec![one1.clone(), equal.clone(), one2.clone()];
 
