@@ -1,15 +1,16 @@
 use std::fs::{self};
 
 use minipl::lexing::*;
+use minipl::parsing::parse;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
 
 pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path)?;
-    let tokens = scan(&source)?;
+    let mut tokens = scan(&source)?;
     let mut colors = ColorGenerator::new();
 
     // 2. Error reporting for lexing
@@ -20,8 +21,8 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
         let mut report =
             Report::build(ReportKind::Error, &path, 0).with_message("Lexing errors found");
 
-        for token in tokens {
-            if let RawToken::Error(message) = token.token {
+        for token in &tokens {
+            if let RawToken::Error(message) = token.token.clone() {
                 report = report.with_label(
                     Label::new((&path, (token.location.0)..(token.location.1)))
                         .with_message(message)
@@ -36,7 +37,37 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
             .unwrap();
     }
 
-    // TODO: n. Semantic analysis
+    // 3. Parsing
+    // remove ignorables
+    tokens.retain(|token| {
+        !matches!(
+            token.token,
+            RawToken::Comment | RawToken::Error(_) | RawToken::Whitespace | RawToken::EOF
+        )
+    });
+    let ast = match parse(tokens) {
+        Ok(ast) => ast,
+        Err(err) => {
+            let token = err
+                .token
+                .unwrap_or_else(|| Token::new(RawToken::Error("Unknown location".into()), (0, 0))); // TODO: better ergonomics
+            let report = Report::build(ReportKind::Error, &path, 0)
+                .with_message("Parse errors found")
+                .with_label(
+                    Label::new((&path, (token.location.0)..(token.location.1)))
+                        .with_message(err.message.clone())
+                        .with_color(colors.next()),
+                );
+            report
+                .finish()
+                .print((&path, Source::from(&source)))
+                .unwrap();
+            return Err(anyhow!(err.message));
+        }
+    };
+    // TODO: better AST prettyprinting
+    dbg!(ast);
+
     // TODO: n. Execution
 
     Ok(())
@@ -77,3 +108,5 @@ pub(crate) fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
 
     Ok(())
 }
+
+// TODO: pub(crate) fn lex

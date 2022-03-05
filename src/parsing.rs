@@ -9,21 +9,26 @@ use crate::lexing::RawToken::{
 };
 use crate::lexing::Token;
 
-use anyhow::{anyhow, Error};
+// TODO: better ParseError struct
+#[derive(Debug)]
+pub struct ParseError {
+    pub message: String,
+    pub token: Option<Token>,
+}
 
 // Unstable syntax
 // pub type Tokens = Peekable<impl Iterator<Item = Token>>;
 
-pub fn parse(tokens: Vec<Token>) -> Result<Expr, Error> {
+pub fn parse(tokens: Vec<Token>) -> Result<Expr, ParseError> {
     let mut tokens = tokens.iter().cloned().peekable();
     expression(&mut tokens)
 }
 
-pub fn expression(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn expression(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     equality(tokens)
 }
 
-pub fn equality(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn equality(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     let mut expr = comparison(tokens)?;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
@@ -39,7 +44,7 @@ pub fn equality(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Ex
     Ok(expr)
 }
 
-pub fn comparison(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn comparison(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     let mut expr = term(tokens)?;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
@@ -55,7 +60,7 @@ pub fn comparison(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<
     Ok(expr)
 }
 
-pub fn term(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn term(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     let mut expr = factor(tokens)?;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
@@ -71,7 +76,7 @@ pub fn term(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, 
     Ok(expr)
 }
 
-pub fn factor(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn factor(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     let mut expr = unary(tokens)?;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
@@ -87,7 +92,7 @@ pub fn factor(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr
     Ok(expr)
 }
 
-pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     if let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
         if matches!(tokentype, Bang | Minus) {
@@ -104,7 +109,7 @@ pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr,
     primary(tokens)
 }
 
-pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Error> {
+pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, ParseError> {
     // At a terminal value, we need to always consume the token ?
     // TODO: verify
     if let Some(token) = tokens.next() {
@@ -116,13 +121,22 @@ pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Exp
                 if let Some(_token) = tokens.next_if(|token| token.tokentype() == ParenRight) {
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 } else {
-                    Err(anyhow!("Expected ) after expression"))
+                    Err(ParseError {
+                        message: "Expected ) after expression".into(),
+                        token: Some(token),
+                    })
                 }
             }
-            _ => Err(anyhow!("Expected expression, found token: {:?}", token)),
+            _ => Err(ParseError {
+                message: "Expected expression, found token".into(),
+                token: Some(token),
+            }),
         }
     } else {
-        return Err(anyhow!("Ran out of tokens?"));
+        Err(ParseError {
+            message: "Ran out of tokens to parse?".into(),
+            token: None,
+        })
     }
 }
 
