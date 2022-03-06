@@ -1,5 +1,5 @@
-use crate::lexing::RawToken;
-use crate::lexing::RawToken::Error;
+use crate::rawtoken::RawToken;
+use crate::rawtoken::RawToken::Error;
 
 /// A richer [Token] type that wraps the [`RawToken`] type, and holds more metadata.
 #[derive(Clone, Debug, PartialEq)]

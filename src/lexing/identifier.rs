@@ -1,6 +1,8 @@
-use super::{
-    Assert, Bool, Do, End, False, For, Identifier, In, Int, Print, Read, String, Token, True, Var,
+use crate::rawtoken::RawToken::{
+    Assert, Bool, Do, End, False, For, Identifier, In, Int, Print, Read, String, True, Var,
 };
+use crate::token::Token;
+
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 
@@ -10,7 +12,7 @@ pub(crate) fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     let &(location, _) = iter.peek().unwrap();
     let mut end = location;
     // Consume all alphabetic characters; [maximal munch](https://craftinginterpreters.com/scanning.html)
-    let mut identifier = String::new();
+    let mut identifier = std::string::String::new();
     while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_alphabetic()) {
         identifier.push(char);
         end = location + 1;
