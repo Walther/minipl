@@ -18,3 +18,4 @@
 | 2022-03-03 | 8     | Parsing: finally get initial draft to commit shape   |
 | 2022-03-04 | 1     | Parsing: minor refactoring                           |
 | 2022-03-05 | 2     | Parsing: initial cli command for ast print, examples |
+| 2022-03-06 | 7     | Parsing: Visitor pattern, proper ASTPrinter          |
