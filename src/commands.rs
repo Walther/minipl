@@ -66,7 +66,7 @@ pub(crate) fn ast(path: Utf8PathBuf) -> Result<()> {
         }
     };
     // TODO: better AST prettyprinting
-    let mut astprinter = ASTPrinter;
+    let mut astprinter = ASTPrinter::default();
     let prettyprint = astprinter.print(&ast);
     println!("{}", prettyprint);
 
