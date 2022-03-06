@@ -11,7 +11,7 @@ use expression::*;
 use crate::lexing::RawToken::{
     Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Slash, Star, Text, True,
 };
-use crate::lexing::Token;
+use crate::token::Token;
 
 // TODO: better ParseError struct
 #[derive(Debug)]

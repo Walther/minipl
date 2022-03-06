@@ -1,6 +1,7 @@
 use std::fs::{self};
 
 use minipl::parsing::parse;
+use minipl::token::Token;
 use minipl::{lexing::*, parsing::astprinter::ASTPrinter};
 
 use anyhow::{anyhow, Result};

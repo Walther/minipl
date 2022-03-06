@@ -15,3 +15,5 @@
 pub mod lexing;
 /// The parsing for the Mini-PL language
 pub mod parsing;
+/// The tokens of the Mini-PL language
+pub mod token;

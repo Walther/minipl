@@ -1,6 +1,6 @@
 #![allow(missing_docs)] // TODO: document
 
-use crate::lexing::Token;
+use crate::token::Token;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
