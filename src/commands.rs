@@ -1,13 +1,13 @@
 use std::fs::{self};
 
-use minipl::lexing::*;
 use minipl::parsing::parse;
+use minipl::{lexing::*, parsing::astprinter::ASTPrinter};
 
 use anyhow::{anyhow, Result};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
 
-pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
+pub(crate) fn ast(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path)?;
     let mut tokens = scan(&source)?;
@@ -66,9 +66,9 @@ pub(crate) fn run(path: Utf8PathBuf) -> Result<()> {
         }
     };
     // TODO: better AST prettyprinting
-    dbg!(ast);
-
-    // TODO: n. Execution
+    let mut astprinter = ASTPrinter;
+    let prettyprint = astprinter.print(&ast);
+    println!("{}", prettyprint);
 
     Ok(())
 }
@@ -109,4 +109,6 @@ pub(crate) fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     Ok(())
 }
 
-// TODO: pub(crate) fn lex
+pub(crate) fn run(_path: Utf8PathBuf) -> Result<()> {
+    unimplemented!()
+}

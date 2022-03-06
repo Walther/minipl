@@ -2,7 +2,7 @@
 
 use crate::lexing::Token;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Binary(Binary),
     Grouping(Grouping),
@@ -11,21 +11,11 @@ pub enum Expr {
     Unary(Unary),
 }
 
-pub trait Expression: std::fmt::Debug + PartialEq {
-    fn visit(&self);
-}
-
-impl Expression for Expr {
-    fn visit(&self) {
-        todo!()
-    }
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Binary {
-    left: Box<Expr>,
-    operator: Token,
-    right: Box<Expr>,
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 impl Binary {
@@ -38,9 +28,9 @@ impl Binary {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Grouping {
-    expression: Box<Expr>,
+    pub expression: Box<Expr>,
 }
 
 impl Grouping {
@@ -51,9 +41,9 @@ impl Grouping {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Literal {
-    value: Token, // TODO: or something even more literal?
+    pub value: Token, // TODO: or something even more literal?
 }
 
 impl Literal {
@@ -62,15 +52,15 @@ impl Literal {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Operator {
-    operator: Token,
+    pub operator: Token,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Unary {
-    operator: Token,
-    right: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 impl Unary {

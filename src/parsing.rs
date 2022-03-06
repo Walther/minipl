@@ -1,8 +1,12 @@
 #![allow(missing_docs)] // TODO: document
 
-mod expression;
-use expression::*;
 use std::iter::Peekable;
+
+pub mod astprinter;
+mod expression;
+mod visitor;
+
+use expression::*;
 
 use crate::lexing::RawToken::{
     Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Slash, Star, Text, True,

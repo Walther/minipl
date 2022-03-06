@@ -21,6 +21,12 @@ pub struct App {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Print the abstract syntax tree for the given file
+    Ast {
+        /// The path to the file to run
+        path: Utf8PathBuf,
+    },
+
     /// Run the lexer on the given file
     Lex {
         /// The path to the file to scan
@@ -66,6 +72,14 @@ fn main() -> Result<()> {
     }
 
     match app.command {
+        Command::Ast { path } => {
+            debug!("AST subcommand called");
+            debug!("File path: {}", path);
+            match ast(path) {
+                Ok(_) => (),
+                Err(error) => error!("{error}"),
+            }
+        }
         Command::Lex { path, verbose } => {
             debug!("Lex subcommand called");
             debug!("File path: {}", path);
