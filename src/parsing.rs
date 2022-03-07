@@ -4,6 +4,7 @@ use std::iter::Peekable;
 
 pub mod astprinter;
 mod expression;
+mod interpreter;
 mod visitor;
 
 use expression::*;
