@@ -3,10 +3,18 @@ use crate::tokens::RawToken::{False, Number, Text, True};
 use super::expression::*;
 use super::visitor::Visitor;
 
+#[derive(Debug, Default)]
 pub struct Interpreter;
+
+impl Interpreter {
+    pub fn eval(&self, _ast: &Expr) -> Object {
+        todo!()
+    }
+}
 
 // TODO: does this make any sense whatsoever?
 
+#[derive(Debug)]
 pub enum Object {
     Number(i64),
     Text(String),
