@@ -69,9 +69,11 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     };
 
     // 4. Evaluation
-    let interpreter = Interpreter::default();
-    let result = interpreter.eval(&ast);
-    println!("{:?}", result);
+    let mut interpreter = Interpreter::default();
+    match interpreter.eval(&ast) {
+        Ok(result) => println!("{:?}", result),
+        Err(e) => return Err(e),
+    };
 
     Ok(())
 }
