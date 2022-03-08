@@ -1,3 +1,5 @@
+use anyhow::{Error, Result};
+
 use crate::tokens::RawToken;
 
 use super::Visitor;
@@ -20,7 +22,7 @@ impl ASTPrinter {
     }
 
     /// The primary function of the [ASTPrinter]: returns the prettyprinted [String] representation of the abstract syntax tree of the given expression
-    pub fn print(&mut self, expr: &Expr) -> String {
+    pub fn print(&mut self, expr: &Expr) -> Result<String, Error> {
         match expr {
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
@@ -30,7 +32,11 @@ impl ASTPrinter {
         }
     }
 
-    fn parenthesize(&mut self, name: &str, exprs: impl Iterator<Item = Expr>) -> String {
+    fn parenthesize(
+        &mut self,
+        name: &str,
+        exprs: impl Iterator<Item = Expr>,
+    ) -> Result<String, Error> {
         let mut string = String::new();
         // TODO: less hacky indent tree
         if self.nest_level > 0 {
@@ -43,7 +49,7 @@ impl ASTPrinter {
         string.push_str(format!("({}", name).as_str());
         for expr in exprs {
             string.push(' ');
-            string.push_str(&self.print(&expr));
+            string.push_str(&self.print(&expr)?);
         }
 
         // TODO: less hacky indent tree
@@ -55,7 +61,7 @@ impl ASTPrinter {
         }
         string.push(')');
 
-        string
+        Ok(string)
     }
 
     fn indented_print(&mut self, value: &RawToken) -> String {
@@ -72,37 +78,37 @@ impl ASTPrinter {
     }
 }
 
-impl Visitor<String> for ASTPrinter {
+impl Visitor<String, Error> for ASTPrinter {
     // TODO: so unergonomic, so many clones...
 
-    fn visit_binary(&mut self, b: &Binary) -> String {
+    fn visit_binary(&mut self, b: &Binary) -> Result<String, Error> {
         let exprs = vec![*b.left.clone(), *b.right.clone()].into_iter();
         self.nest_level += 1;
-        let string = self.parenthesize(format!("{:?}", b.operator.token).as_str(), exprs);
+        let string = self.parenthesize(format!("{:?}", b.operator.token).as_str(), exprs)?;
         self.nest_level -= 1;
-        string
+        Ok(string)
     }
 
-    fn visit_grouping(&mut self, g: &Grouping) -> String {
+    fn visit_grouping(&mut self, g: &Grouping) -> Result<String, Error> {
         let exprs = vec![Expr::Grouping(g.clone())].into_iter();
         self.nest_level += 1;
-        let string = self.parenthesize("group", exprs);
+        let string = self.parenthesize("group", exprs)?;
         self.nest_level -= 1;
-        string
+        Ok(string)
     }
 
-    fn visit_literal(&mut self, l: &Literal) -> String {
+    fn visit_literal(&mut self, l: &Literal) -> Result<String, Error> {
         self.nest_level += 1;
         let string = self.indented_print(&l.value.token);
         self.nest_level -= 1;
-        string
+        Ok(string)
     }
 
-    fn visit_unary(&mut self, u: &Unary) -> String {
+    fn visit_unary(&mut self, u: &Unary) -> Result<String, Error> {
         let exprs = vec![*u.right.clone()].into_iter();
         self.nest_level += 1;
-        let string = self.parenthesize(format!("{:?}", u.operator).as_str(), exprs);
+        let string = self.parenthesize(format!("{:?}", u.operator).as_str(), exprs)?;
         self.nest_level -= 1;
-        string
+        Ok(string)
     }
 }

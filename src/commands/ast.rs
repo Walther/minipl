@@ -67,9 +67,10 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
             return Err(anyhow!(err.message));
         }
     };
-    // TODO: better AST prettyprinting
+
+    // 4. AST prettyprinting
     let mut astprinter = ASTPrinter::default();
-    let prettyprint = astprinter.print(&ast);
+    let prettyprint = astprinter.print(&ast)?;
     println!("{}", prettyprint);
 
     Ok(())
