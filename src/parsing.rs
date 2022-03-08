@@ -9,10 +9,10 @@ mod visitor;
 
 use expression::*;
 
-use crate::rawtoken::RawToken::{
+use crate::tokens::RawToken::{
     Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Slash, Star, Text, True,
 };
-use crate::token::Token;
+use crate::tokens::Token;
 
 // TODO: better ParseError struct
 #[derive(Debug)]

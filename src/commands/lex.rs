@@ -1,7 +1,7 @@
 use std::fs;
 
 use minipl::lexing::*;
-use minipl::rawtoken::RawToken;
+use minipl::tokens::RawToken;
 
 use anyhow::Result;
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};

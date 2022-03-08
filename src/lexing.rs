@@ -6,8 +6,8 @@ use std::{
 use anyhow::{anyhow, Error};
 use tracing::debug;
 
-use crate::rawtoken::RawToken::*;
-use crate::token::*;
+use crate::tokens::RawToken::*;
+use crate::tokens::Token;
 
 mod colon;
 mod identifier;

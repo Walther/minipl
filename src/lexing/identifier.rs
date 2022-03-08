@@ -1,7 +1,7 @@
-use crate::rawtoken::RawToken::{
+use crate::tokens::RawToken::{
     Assert, Bool, Do, End, False, For, Identifier, In, Int, Print, Read, String, True, Var,
 };
-use crate::token::Token;
+use crate::tokens::Token;
 
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
