@@ -1,8 +1,9 @@
 use std::fs;
 
 use minipl::lexing::scan;
-use minipl::parsing::{astprinter::ASTPrinter, parse};
+use minipl::parsing::parse;
 use minipl::tokens::{RawToken, Token};
+use minipl::visitors::ASTPrinter;
 
 use anyhow::{anyhow, Result};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};

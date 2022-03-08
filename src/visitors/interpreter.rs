@@ -1,12 +1,14 @@
 use crate::tokens::RawToken::{False, Number, Text, True};
 
-use super::expression::*;
-use super::visitor::Visitor;
+use super::Visitor;
+use crate::parsing::expression::*;
 
 #[derive(Debug, Default)]
+/// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the given expression
 pub struct Interpreter;
 
 impl Interpreter {
+    /// The primary function of the [Interpreter]: returns the evaluated [Object] value of a given expression
     pub fn eval(&self, _ast: &Expr) -> Object {
         todo!()
     }
@@ -15,9 +17,13 @@ impl Interpreter {
 // TODO: does this make any sense whatsoever?
 
 #[derive(Debug)]
+/// The main enum of the runtime values within the language interpretation process
 pub enum Object {
+    /// Number value
     Number(i64),
+    /// Text value
     Text(String),
+    /// Boolean value
     Boolean(bool),
 }
 

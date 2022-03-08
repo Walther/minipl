@@ -2,10 +2,7 @@
 
 use std::iter::Peekable;
 
-pub mod astprinter;
-mod expression;
-pub mod interpreter;
-mod visitor;
+pub mod expression;
 
 use expression::*;
 

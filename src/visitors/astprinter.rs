@@ -1,20 +1,23 @@
 use crate::tokens::RawToken;
 
-use super::expression::*;
-use super::visitor::Visitor;
+use super::Visitor;
+use crate::parsing::expression::*;
 
 // TODO: this feels incredibly un-ergonomic, how is this visitor pattern best used in rust?
 
 #[derive(Debug)]
+/// [ASTPrinter] is a [Visitor] for prettyprinting the abstract syntax tree of the given expression
 pub struct ASTPrinter {
     nest_level: u64,
 }
 
 impl ASTPrinter {
+    /// Creates a new [ASTPrinter] with `nest_level: 0`.
     pub fn default() -> Self {
         Self { nest_level: 0 }
     }
 
+    /// The primary function of the [ASTPrinter]: returns the prettyprinted [String] representation of the abstract syntax tree of the given expression
     pub fn print(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::Binary(b) => self.visit_binary(b),

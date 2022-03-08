@@ -11,9 +11,11 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-/// The lexer for the Mini-PL language
+/// The lexing for the Mini-PL language
 pub mod lexing;
 /// The parsing for the Mini-PL language
 pub mod parsing;
 /// The tokens of the Mini-PL language
 pub mod tokens;
+/// The visitors for the Mini-PL language
+pub mod visitors;
