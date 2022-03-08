@@ -28,8 +28,7 @@ use whitespace::scan_whitespace;
 ///
 /// # Errors
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
-/// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`] in order to recover error locations etc.
-/// for use in error reporting for the user.
+/// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
 pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
     let length = input.len();
@@ -52,8 +51,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
 ///
 /// # Errors
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
-/// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`] in order to recover error locations etc.
-/// for use in error reporting for the user.
+/// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
 pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error> {
     let &(location, char) = match iter.peek() {
         Some(it) => it,

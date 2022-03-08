@@ -2,6 +2,9 @@
 default:
   @just --list --unsorted
 
+doc:
+  cargo doc --no-deps
+
 # Run the CLI application with the given parameters
 cli *ARGS:
   cargo run --bin minipl --release -- {{ARGS}}
