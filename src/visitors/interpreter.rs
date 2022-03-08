@@ -1,4 +1,6 @@
-use crate::tokens::RawToken::{Bang, False, Minus, Number, Plus, Slash, Star, Text, True};
+use crate::tokens::RawToken::{
+    Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True,
+};
 
 use super::Visitor;
 use crate::parsing::expression::*;
@@ -80,6 +82,36 @@ impl Visitor<Object, Error> for Interpreter {
                 (_, _) => {
                     return Err(anyhow!(
                     "Plus operator can only be used for Number+Number or Text+Text, got: {:?} + {:?}",
+                    left.clone(),
+                    right.clone()
+                ))
+                }
+            },
+            Equal => match (&left, &right) {
+                (Object::Number(_), Object::Number(_)) => {
+                    Object::Boolean(left.as_numeric()? == right.as_numeric()?)
+                }
+                (Object::Text(_), Object::Text(_)) => {
+                    Object::Boolean(left.as_text()? == right.as_text()?)
+                }
+                (_, _) => {
+                    return Err(anyhow!(
+                    "Equal operator can only be used for Number=Number or Text=Text, got: {:?} = {:?}",
+                    left.clone(),
+                    right.clone()
+                ))
+                }
+            },
+            Less => match (&left, &right) {
+                (Object::Number(_), Object::Number(_)) => {
+                    Object::Boolean(left.as_numeric()? < right.as_numeric()?)
+                }
+                (Object::Text(_), Object::Text(_)) => {
+                    Object::Boolean(left.as_text()? < right.as_text()?)
+                }
+                (_, _) => {
+                    return Err(anyhow!(
+                    "Less operator can only be used for Number<Number or Text<Text, got: {:?} < {:?}",
                     left.clone(),
                     right.clone()
                 ))

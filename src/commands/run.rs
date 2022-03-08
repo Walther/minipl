@@ -8,6 +8,7 @@ use minipl::visitors::Interpreter;
 use anyhow::{anyhow, Result};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
+use tracing::info;
 
 pub fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
@@ -47,6 +48,12 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
             RawToken::Comment | RawToken::Error(_) | RawToken::Whitespace | RawToken::EOF
         )
     });
+
+    if tokens.is_empty() {
+        info!("Nothing to execute. Source contained ignorable tokens only.");
+        return Ok(());
+    }
+
     let ast = match parse(tokens) {
         Ok(ast) => ast,
         Err(err) => {
