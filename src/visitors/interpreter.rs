@@ -49,10 +49,6 @@ impl Visitor<Object> for Interpreter {
         }
     }
 
-    fn visit_operator(&mut self, _o: &Operator) -> Object {
-        todo!()
-    }
-
     fn visit_unary(&mut self, _u: &Unary) -> Object {
         todo!()
     }

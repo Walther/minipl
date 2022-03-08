@@ -16,8 +16,6 @@ pub trait Visitor<T> {
     fn visit_grouping(&mut self, g: &Grouping) -> T;
     /// Visit function for the [Literal] type
     fn visit_literal(&mut self, l: &Literal) -> T;
-    /// Visit function for the [Operator] type
-    fn visit_operator(&mut self, o: &Operator) -> T;
     /// Visit function for the [Unary] type
     fn visit_unary(&mut self, u: &Unary) -> T;
 }
