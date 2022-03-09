@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use miette::{Error, Result};
 
 use crate::tokens::RawToken;
 

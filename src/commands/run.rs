@@ -2,17 +2,17 @@ use std::fs;
 
 use minipl::lexing::scan;
 use minipl::parsing::parse;
-use minipl::tokens::{RawToken, Token};
+use minipl::tokens::RawToken;
 use minipl::visitors::Interpreter;
 
-use anyhow::{anyhow, Result};
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
+use miette::{IntoDiagnostic, Result};
 use tracing::info;
 
 pub fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
-    let source: String = fs::read_to_string(&path)?;
+    let source: String = fs::read_to_string(&path).into_diagnostic()?;
     let mut tokens = scan(&source)?;
     let mut colors = ColorGenerator::new();
 
@@ -26,11 +26,13 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
 
         for token in &tokens {
             if let RawToken::Error(message) = token.token.clone() {
+                let start = token.span.0;
+                let end = token.span.0 + token.span.1;
                 report = report.with_label(
-                    Label::new((&path, (token.location.0)..(token.location.1)))
+                    Label::new((&path, start..end))
                         .with_message(message)
                         .with_color(colors.next()),
-                )
+                );
             }
         }
 
@@ -57,21 +59,8 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     let ast = match parse(tokens) {
         Ok(ast) => ast,
         Err(err) => {
-            let token = err
-                .token
-                .unwrap_or_else(|| Token::new(RawToken::Error("Unknown location".into()), (0, 0))); // TODO: better ergonomics
-            let report = Report::build(ReportKind::Error, &path, 0)
-                .with_message("Parse errors found")
-                .with_label(
-                    Label::new((&path, (token.location.0)..(token.location.1)))
-                        .with_message(err.message.clone())
-                        .with_color(colors.next()),
-                );
-            report
-                .finish()
-                .print((&path, Source::from(&source)))
-                .unwrap();
-            return Err(anyhow!(err.message));
+            let report: miette::Report = err.into();
+            return Err(report.with_source_code(source));
         }
     };
 
@@ -79,7 +68,10 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     let mut interpreter = Interpreter::default();
     match interpreter.eval(&ast) {
         Ok(result) => println!("{:?}", result),
-        Err(e) => return Err(e),
+        Err(err) => {
+            let report: miette::Report = err;
+            return Err(report.with_source_code(source));
+        }
     };
 
     Ok(())

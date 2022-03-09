@@ -8,7 +8,7 @@ pub use astprinter::ASTPrinter;
 pub mod interpreter;
 pub use interpreter::Interpreter;
 
-use anyhow::Result;
+use miette::Result;
 
 /// The main visitor trait for the visitor pattern. See e.g. [Rust Design Patterns: Visitor](https://rust-unofficial.github.io/patterns/patterns/behavioural/visitor.html)
 pub trait Visitor<T, E> {

@@ -5,7 +5,7 @@ use crate::tokens::RawToken::{
 use super::Visitor;
 use crate::parsing::expression::*;
 
-use anyhow::{anyhow, Error, Result};
+use miette::{miette, Error, Result};
 
 #[derive(Debug, Default)]
 /// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the given expression
@@ -42,7 +42,7 @@ impl Object {
     pub fn as_numeric(&self) -> Result<i64, Error> {
         match self {
             Object::Number(n) => Ok(*n),
-            _ => Err(anyhow!("Expected a numeric value, got: {:?}", self)),
+            _ => Err(miette!("Expected a numeric value, got: {:?}", self)),
         }
     }
 
@@ -50,7 +50,7 @@ impl Object {
     pub fn as_bool(&self) -> Result<bool, Error> {
         match self {
             Object::Boolean(b) => Ok(*b),
-            _ => Err(anyhow!("Expected a boolean value, got: {:?}", self)),
+            _ => Err(miette!("Expected a boolean value, got: {:?}", self)),
         }
     }
 
@@ -58,7 +58,7 @@ impl Object {
     pub fn as_text(&self) -> Result<String, Error> {
         match self {
             Object::Text(s) => Ok(s.to_string()),
-            _ => Err(anyhow!("Expected a text value, got: {:?}", self)),
+            _ => Err(miette!("Expected a text value, got: {:?}", self)),
         }
     }
 }
@@ -80,7 +80,7 @@ impl Visitor<Object, Error> for Interpreter {
                     Object::Text(format!("{}{}", left.as_text()?, right.as_text()?))
                 }
                 (_, _) => {
-                    return Err(anyhow!(
+                    return Err(miette!(
                     "Plus operator can only be used for Number+Number or Text+Text, got: {:?} + {:?}",
                     left.clone(),
                     right.clone()
@@ -95,7 +95,7 @@ impl Visitor<Object, Error> for Interpreter {
                     Object::Boolean(left.as_text()? == right.as_text()?)
                 }
                 (_, _) => {
-                    return Err(anyhow!(
+                    return Err(miette!(
                     "Equal operator can only be used for Number=Number or Text=Text, got: {:?} = {:?}",
                     left.clone(),
                     right.clone()
@@ -110,14 +110,14 @@ impl Visitor<Object, Error> for Interpreter {
                     Object::Boolean(left.as_text()? < right.as_text()?)
                 }
                 (_, _) => {
-                    return Err(anyhow!(
+                    return Err(miette!(
                     "Less operator can only be used for Number<Number or Text<Text, got: {:?} < {:?}",
                     left.clone(),
                     right.clone()
                 ))
                 }
             },
-            _ => return Err(anyhow!("Unexpected unary operator: {:?}", b.operator)),
+            _ => return Err(miette!("Unexpected unary operator: {:?}", b.operator)),
         };
         Ok(result)
     }
@@ -132,7 +132,7 @@ impl Visitor<Object, Error> for Interpreter {
             Text(t) => Object::Text(t.clone()),
             False => Object::Boolean(false),
             True => Object::Boolean(true),
-            _ => return Err(anyhow!("Unexpected literal: {:?}", l.value.token)),
+            _ => return Err(miette!("Unexpected literal: {:?}", l.value.token)),
         };
         Ok(result)
     }
@@ -142,7 +142,7 @@ impl Visitor<Object, Error> for Interpreter {
         let result = match u.operator.tokentype() {
             Minus => Object::Number(-right.as_numeric()?),
             Bang => Object::Boolean(!right.as_bool()?),
-            _ => return Err(anyhow!("Unexpected unary operator: {:?}", u.operator)),
+            _ => return Err(miette!("Unexpected unary operator: {:?}", u.operator)),
         };
         Ok(result)
     }

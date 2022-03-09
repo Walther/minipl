@@ -17,25 +17,25 @@ pub(crate) fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 
     // Consume the first quote
     let (start, _) = iter.next().unwrap();
-    let mut end = start + 1;
+    let mut length = 1;
 
     // Consume and collect all characters within the string
     let mut contents = String::new();
-    while let Some((location, char)) = iter.next_if(|&(_, char)| char != '"') {
-        end = location + 1;
+    while let Some((_, char)) = iter.next_if(|&(_, char)| char != '"') {
+        length += 1;
 
         // Specification forbids unescaped newlines
         if char == '\n' {
             return Token::new(
                 Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
-                (start, location),
+                (start, length),
             );
         }
         // Parse escape characters, following https://doc.rust-lang.org/std/primitive.char.html
         else if char == '\\' {
             if let Some(&(_, next)) = iter.peek() {
                 iter.next();
-                end += 1;
+                length += 1;
                 match next {
                     't' => contents.push('\t'),
                     'r' => contents.push('\r'),
@@ -44,13 +44,16 @@ pub(crate) fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
                     '\"' => contents.push('\"'),
                     '\\' => contents.push('\\'),
                     _ => {
-                        return Token::new(Error(ERROR_STRING_UNKNOWN_ESCAPE.into()), (start, end))
+                        return Token::new(
+                            Error(ERROR_STRING_UNKNOWN_ESCAPE.into()),
+                            (start, length),
+                        )
                     }
                 }
             } else {
                 // Ran out of string to parse
                 // TODO: better error message for this case?
-                return Token::new(Error(ERROR_STRING_UNKNOWN_ESCAPE.into()), (start, end));
+                return Token::new(Error(ERROR_STRING_UNKNOWN_ESCAPE.into()), (start, length));
             }
         } else {
             // Normal character, push as-is
@@ -59,13 +62,13 @@ pub(crate) fn scan_string(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     }
 
     // Check if we have an ending quote
-    if let Some((location, _)) = iter.next_if(|&(_, char)| char == '\"') {
-        end = location + 1;
-        Token::new(Text(contents), (start, end))
+    if let Some((_, _)) = iter.next_if(|&(_, char)| char == '\"') {
+        length += 1;
+        Token::new(Text(contents), (start, length))
     } else {
         Token::new(
             Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
-            (start, end),
+            (start, length),
         )
     }
 }
@@ -94,7 +97,7 @@ mod tests {
     fn raw_newline() {
         // NOTE: Specification forbids raw newlines within a string
         let token = &scan("\"multi\nline\"").unwrap()[0];
-        let expected = Token::new(Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()), (0, 6));
+        let expected = Token::new(Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()), (0, 7));
         assert_eq!(token, &expected);
     }
 

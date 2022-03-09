@@ -8,24 +8,26 @@ use std::str::Chars;
 /// Internal helper function for scanning a lexeme that starts with a slash. This could be a [Comment], or just a [Slash].
 pub(crate) fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // TODO: remove unwraps
-    // Consume the first slash & grab the location
-    let (location, _) = iter.next().unwrap();
-    let mut end = location;
+    // Consume the first slash & grab the start location
+    let (start, _) = iter.next().unwrap();
+    let mut length = 1;
     // Do we have a second slash?
     if let Some((_, _)) = iter.next_if(|&(_, char)| char == '/') {
+        length += 1;
         // Second slash found, consume until end of line
-        for (location, next) in iter {
+        for (_, next) in iter {
             if next == '\n' {
-                end = location;
                 break;
+            } else {
+                length += 1;
             }
         }
-        return Token::new(Comment, (location, end));
+        return Token::new(Comment, (start, length));
     }
     // TODO: multi-line comments with nesting support
 
     // Not a comment, just a slash
-    Token::new(Slash, (location, location + 1))
+    Token::new(Slash, (start, 1))
 }
 
 #[cfg(test)]

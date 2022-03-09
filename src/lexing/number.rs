@@ -11,16 +11,16 @@ pub(crate) fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 
     let mut number = String::new();
     let &(start, _) = iter.peek().unwrap();
-    let mut end = start;
+    let mut length = 0;
 
-    while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_digit()) {
-        end = location + 1;
+    while let Some((_, char)) = iter.next_if(|(_, char)| char.is_ascii_digit()) {
+        length += 1;
         number.push(char);
     }
 
     let number: i64 = number.parse().unwrap();
 
-    Token::new(Number(number), (start, end))
+    Token::new(Number(number), (start, length))
 }
 
 #[cfg(test)]

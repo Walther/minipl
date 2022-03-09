@@ -7,13 +7,13 @@ use std::str::Chars;
 /// Internal helper function for scanning and skipping over whitespace. Greedy / maximal munch.
 pub(crate) fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     let &(start, _) = iter.peek().unwrap();
-    let mut end = start;
+    let mut length = 0;
 
-    while let Some((location, _)) = iter.next_if(|(_, char)| char.is_ascii_whitespace()) {
-        end = location + 1;
+    while let Some((_, _)) = iter.next_if(|(_, char)| char.is_ascii_whitespace()) {
+        length += 1;
     }
 
-    Token::new(Whitespace, (start, end))
+    Token::new(Whitespace, (start, length))
 }
 
 #[cfg(test)]

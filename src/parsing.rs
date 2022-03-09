@@ -1,9 +1,10 @@
 #![allow(missing_docs)] // TODO: document
 
+use miette::{Diagnostic, SourceSpan};
 use std::iter::Peekable;
+use thiserror::Error;
 
 pub mod expression;
-
 use expression::*;
 
 use crate::tokens::RawToken::{
@@ -11,11 +12,19 @@ use crate::tokens::RawToken::{
 };
 use crate::tokens::Token;
 
-// TODO: better ParseError struct
-#[derive(Debug)]
-pub struct ParseError {
-    pub message: String,
-    pub token: Option<Token>,
+#[derive(Error, Debug, Diagnostic)]
+#[error("Parse error")]
+#[diagnostic()]
+pub enum ParseError {
+    NothingToParse(
+        #[label = "Nothing to parse. Source contained ignorable tokens only."] SourceSpan,
+    ),
+    MissingParen(#[label = "Expected ( after this grouping"] SourceSpan),
+    ExpectedExpressionFoundToken(
+        String,
+        #[label = "Expected expression, found token {0}"] SourceSpan,
+    ),
+    OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
 }
 
 // Unstable syntax
@@ -104,8 +113,7 @@ pub fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr,
             return Ok(Expr::Unary(Unary::new(operator, right)));
         }
     } else {
-        // What should happen here?
-        todo!()
+        return Err(ParseError::NothingToParse((0, 0).into()));
     }
 
     primary(tokens)
@@ -123,22 +131,16 @@ pub fn primary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Exp
                 if let Some(_token) = tokens.next_if(|token| token.tokentype() == ParenRight) {
                     Ok(Expr::Grouping(Grouping::new(expr)))
                 } else {
-                    Err(ParseError {
-                        message: "Expected ) after expression".into(),
-                        token: Some(token),
-                    })
+                    Err(ParseError::MissingParen(token.span.into()))
                 }
             }
-            _ => Err(ParseError {
-                message: "Expected expression, found token".into(),
-                token: Some(token),
-            }),
+            _ => Err(ParseError::ExpectedExpressionFoundToken(
+                format!("{:?}", token.token),
+                token.span.into(),
+            )),
         }
     } else {
-        Err(ParseError {
-            message: "Ran out of tokens to parse?".into(),
-            token: None,
-        })
+        Err(ParseError::OutOfTokens((0, 0).into()))
     }
 }
 

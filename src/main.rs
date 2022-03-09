@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
 use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand};
+use miette::{miette, Result};
 use tracing::{debug, error, Level};
 use tracing_subscriber::fmt::time;
 
@@ -57,6 +57,16 @@ struct GlobalOpts {
 }
 
 fn main() -> Result<()> {
+    // TODO: remove forced graphics and unicode
+    let _ = miette::set_hook(Box::new(|_| {
+        Box::new(
+            miette::MietteHandlerOpts::new()
+                .unicode(true)
+                .force_graphical(true)
+                .build(),
+        )
+    }));
+
     let app = App::parse();
 
     if app.global_opts.debug {
@@ -75,32 +85,23 @@ fn main() -> Result<()> {
         Command::Ast { path } => {
             debug!("AST subcommand called");
             debug!("File path: {}", path);
-            match ast(path) {
-                Ok(_) => (),
-                Err(error) => error!("{error}"),
-            }
+            ast(path)?;
         }
         Command::Lex { path, verbose } => {
             debug!("Lex subcommand called");
             debug!("File path: {}", path);
-            match lex(path, verbose) {
-                Ok(_) => (),
-                Err(error) => error!("{error}"),
-            }
+            lex(path, verbose)?;
         }
         Command::Run { path } => {
             debug!("Run subcommand called");
             debug!("File path: {}", path);
-            match run(path) {
-                Ok(_) => (),
-                Err(error) => error!("{error}"),
-            }
+            run(path)?;
         }
         Command::Build { path } => {
             debug!("Build subcommand called");
             debug!("File path: {}", path);
             error!("Compiler mode not implemented yet");
-            return Err(anyhow!("Compiler mode not implemented yet"));
+            return Err(miette!("Compiler mode not implemented yet"));
         }
     }
 

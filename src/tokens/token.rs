@@ -6,15 +6,15 @@ use crate::tokens::rawtoken::RawToken::Error;
 pub struct Token {
     /// The raw token itself
     pub token: RawToken,
-    /// Location, a tuple of start and end. An example single-letter token would have location `(0,1)`.
-    pub location: (usize, usize),
+    /// A tuple of `(start, length)`. An example single-letter token `x` would have span `(0,1)`, a string token `"abc"` would have span `(0,5). Used for [miette]-compatible code spans in error reporting.
+    pub span: (usize, usize),
 }
 
 impl Token {
     #[must_use]
-    /// Creates a new [Token] type, when given a [`RawToken`] and a location `(start, end)`
-    pub fn new(token: RawToken, location: (usize, usize)) -> Self {
-        Self { token, location }
+    /// Creates a new [Token] type, when given a [`RawToken`] and a span `(start, length)`
+    pub fn new(token: RawToken, span: (usize, usize)) -> Self {
+        Self { token, span }
     }
 
     #[must_use]

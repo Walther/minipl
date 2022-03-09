@@ -9,32 +9,32 @@ use std::str::Chars;
 /// Internal helper function for scanning identifiers. Greedy / maximal munch, consumes all consecutive ascii-alphabetic chars.
 pub(crate) fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Grab the start location from the current, unconsumed char
-    let &(location, _) = iter.peek().unwrap();
-    let mut end = location;
+    let &(start, _) = iter.peek().unwrap();
+    let mut length = 0;
     // Consume all alphabetic characters; [maximal munch](https://craftinginterpreters.com/scanning.html)
     let mut identifier = std::string::String::new();
-    while let Some((location, char)) = iter.next_if(|(_, char)| char.is_ascii_alphabetic()) {
+    while let Some((_start, char)) = iter.next_if(|(_, char)| char.is_ascii_alphabetic()) {
         identifier.push(char);
-        end = location + 1;
+        length += 1;
     }
 
     match identifier.as_ref() {
         // Is this a keyword?
-        "assert" => Token::new(Assert, (location, end)),
-        "bool" => Token::new(Bool, (location, end)),
-        "do" => Token::new(Do, (location, end)),
-        "end" => Token::new(End, (location, end)),
-        "false" => Token::new(False, (location, end)),
-        "for" => Token::new(For, (location, end)),
-        "in" => Token::new(In, (location, end)),
-        "int" => Token::new(Int, (location, end)),
-        "print" => Token::new(Print, (location, end)),
-        "read" => Token::new(Read, (location, end)),
-        "string" => Token::new(String, (location, end)),
-        "true" => Token::new(True, (location, end)),
-        "var" => Token::new(Var, (location, end)),
+        "assert" => Token::new(Assert, (start, length)),
+        "bool" => Token::new(Bool, (start, length)),
+        "do" => Token::new(Do, (start, length)),
+        "end" => Token::new(End, (start, length)),
+        "false" => Token::new(False, (start, length)),
+        "for" => Token::new(For, (start, length)),
+        "in" => Token::new(In, (start, length)),
+        "int" => Token::new(Int, (start, length)),
+        "print" => Token::new(Print, (start, length)),
+        "read" => Token::new(Read, (start, length)),
+        "string" => Token::new(String, (start, length)),
+        "true" => Token::new(True, (start, length)),
+        "var" => Token::new(Var, (start, length)),
         // Otherwise, assume it's a user-defined identifier name
-        _ => Token::new(Identifier(identifier), (location, end)),
+        _ => Token::new(Identifier(identifier), (start, length)),
     }
 }
 

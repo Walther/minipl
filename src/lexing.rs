@@ -3,7 +3,7 @@ use std::{
     str::Chars,
 };
 
-use anyhow::{anyhow, Error};
+use miette::{miette, Error};
 use tracing::debug;
 
 use crate::tokens::RawToken::*;
@@ -42,7 +42,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
 
     tokens.push(Token {
         token: EOF,
-        location: (length, length),
+        span: (length, 0),
     });
     Ok(tokens)
 }
@@ -53,23 +53,23 @@ pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
 /// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
 pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error> {
-    let &(location, char) = match iter.peek() {
+    let &(start, char) = match iter.peek() {
         Some(it) => it,
-        None => return Err(anyhow!("Tried to scan a token with no characters left")),
+        None => return Err(miette!("Tried to scan a token with no characters left")),
     };
 
     let token: Token = match char {
         // Single-character tokens
-        '&' => Token::new(And, (location, location + 1)),
-        '!' => Token::new(Bang, (location, location + 1)),
-        '<' => Token::new(Less, (location, location + 1)),
-        '-' => Token::new(Minus, (location, location + 1)),
-        '(' => Token::new(ParenLeft, (location, location + 1)),
-        ')' => Token::new(ParenRight, (location, location + 1)),
-        '+' => Token::new(Plus, (location, location + 1)),
-        ';' => Token::new(Semicolon, (location, location + 1)),
-        '*' => Token::new(Star, (location, location + 1)),
-        '=' => Token::new(Equal, (location, location + 1)),
+        '&' => Token::new(And, (start, 1)),
+        '!' => Token::new(Bang, (start, 1)),
+        '<' => Token::new(Less, (start, 1)),
+        '-' => Token::new(Minus, (start, 1)),
+        '(' => Token::new(ParenLeft, (start, 1)),
+        ')' => Token::new(ParenRight, (start, 1)),
+        '+' => Token::new(Plus, (start, 1)),
+        ';' => Token::new(Semicolon, (start, 1)),
+        '*' => Token::new(Star, (start, 1)),
+        '=' => Token::new(Equal, (start, 1)),
         // NOTE: we consume the char for these ^ at the end with a glob match in order to reduce line noise
 
         // Colon: possibly an Assign, or just a Colon
@@ -97,10 +97,7 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         _ => {
             // Consume and report
             iter.next();
-            Token::new(
-                Error(format!("Unknown token {char}")),
-                (location, location + 1),
-            )
+            Token::new(Error(format!("Unknown token {char}")), (start, 1))
         }
     };
 
@@ -178,9 +175,9 @@ mod tests {
         let tokens = &scan("1+2").unwrap();
         let expected = vec![
             Token::new(Number(1), (0, 1)),
-            Token::new(Plus, (1, 2)),
-            Token::new(Number(2), (2, 3)),
-            Token::new(EOF, (3, 3)),
+            Token::new(Plus, (1, 1)),
+            Token::new(Number(2), (2, 1)),
+            Token::new(EOF, (3, 0)),
         ];
         assert_eq!(tokens, &expected);
     }
@@ -190,13 +187,13 @@ mod tests {
         let tokens = &scan("2*2/2=2").unwrap();
         let expected = vec![
             Token::new(Number(2), (0, 1)),
-            Token::new(Star, (1, 2)),
-            Token::new(Number(2), (2, 3)),
-            Token::new(Slash, (3, 4)),
-            Token::new(Number(2), (4, 5)),
-            Token::new(Equal, (5, 6)),
-            Token::new(Number(2), (6, 7)),
-            Token::new(EOF, (7, 7)),
+            Token::new(Star, (1, 1)),
+            Token::new(Number(2), (2, 1)),
+            Token::new(Slash, (3, 1)),
+            Token::new(Number(2), (4, 1)),
+            Token::new(Equal, (5, 1)),
+            Token::new(Number(2), (6, 1)),
+            Token::new(EOF, (7, 0)),
         ];
         assert_eq!(tokens, &expected);
     }

@@ -8,15 +8,15 @@ use std::str::Chars;
 /// Internal helper function for scanning a lexeme that starts with a dot. This could be a [Range], or a lexing error.
 pub(crate) fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     // Consume this token to peek the next
-    let (location, _) = iter.next().unwrap();
+    let (start, _) = iter.next().unwrap();
     // Is this a Range operator?
-    if let Some((end, _)) = iter.next_if(|&(_, char)| char == '.') {
-        Token::new(Range, (location, end + 1))
+    if let Some((_, _)) = iter.next_if(|&(_, char)| char == '.') {
+        Token::new(Range, (start, 2))
     } else {
         // Otherwise, we have a parse error
         Token::new(
             Error("Expected another '.' for Range operator".into()),
-            (location, location + 2),
+            (start, 1),
         )
     }
 }
@@ -29,7 +29,7 @@ mod tests {
         let token = &scan(".").unwrap()[0];
         let expected = Token::new(
             Error("Expected another '.' for Range operator".into()),
-            (0, 2),
+            (0, 1),
         );
         assert_eq!(token, &expected);
 
