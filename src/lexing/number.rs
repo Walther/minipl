@@ -1,3 +1,5 @@
+use crate::span::StartEndSpan;
+
 use super::Number;
 use super::Token;
 use std::iter::Enumerate;
@@ -19,21 +21,21 @@ pub(crate) fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     }
 
     let number: i64 = number.parse().unwrap();
-
-    Token::new(Number(number), (start, length))
+    let end = start + length;
+    Token::new(Number(number), StartEndSpan::new(start, end))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::lexing::*;
+    use crate::{lexing::*, span::StartEndSpan};
     #[test]
     fn number() {
         let token = &scan("1").unwrap()[0];
-        let expected = Token::new(Number(1), (0, 1));
+        let expected = Token::new(Number(1), StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("1234567890").unwrap()[0];
-        let expected = Token::new(Number(1234567890), (0, 10));
+        let expected = Token::new(Number(1234567890), StartEndSpan::new(0, 10));
         assert_eq!(token, &expected);
     }
 }

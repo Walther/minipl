@@ -1,3 +1,4 @@
+use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
     Assert, Bool, Do, End, False, For, Identifier, In, Int, Print, Read, String, True, Var,
 };
@@ -17,75 +18,77 @@ pub(crate) fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
         identifier.push(char);
         length += 1;
     }
+    let end = start + length;
 
     match identifier.as_ref() {
         // Is this a keyword?
-        "assert" => Token::new(Assert, (start, length)),
-        "bool" => Token::new(Bool, (start, length)),
-        "do" => Token::new(Do, (start, length)),
-        "end" => Token::new(End, (start, length)),
-        "false" => Token::new(False, (start, length)),
-        "for" => Token::new(For, (start, length)),
-        "in" => Token::new(In, (start, length)),
-        "int" => Token::new(Int, (start, length)),
-        "print" => Token::new(Print, (start, length)),
-        "read" => Token::new(Read, (start, length)),
-        "string" => Token::new(String, (start, length)),
-        "true" => Token::new(True, (start, length)),
-        "var" => Token::new(Var, (start, length)),
+        // TODO: const hashmap and a simple get method?
+        "assert" => Token::new(Assert, StartEndSpan::new(start, end)),
+        "bool" => Token::new(Bool, StartEndSpan::new(start, end)),
+        "do" => Token::new(Do, StartEndSpan::new(start, end)),
+        "end" => Token::new(End, StartEndSpan::new(start, end)),
+        "false" => Token::new(False, StartEndSpan::new(start, end)),
+        "for" => Token::new(For, StartEndSpan::new(start, end)),
+        "in" => Token::new(In, StartEndSpan::new(start, end)),
+        "int" => Token::new(Int, StartEndSpan::new(start, end)),
+        "print" => Token::new(Print, StartEndSpan::new(start, end)),
+        "read" => Token::new(Read, StartEndSpan::new(start, end)),
+        "string" => Token::new(String, StartEndSpan::new(start, end)),
+        "true" => Token::new(True, StartEndSpan::new(start, end)),
+        "var" => Token::new(Var, StartEndSpan::new(start, end)),
         // Otherwise, assume it's a user-defined identifier name
-        _ => Token::new(Identifier(identifier), (start, length)),
+        _ => Token::new(Identifier(identifier), StartEndSpan::new(start, end)),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::lexing::*;
+    use crate::{lexing::*, span::StartEndSpan};
 
     #[test]
     fn keywords() {
         let token = &scan("assert").unwrap()[0];
-        let expected = Token::new(Assert, (0, 6));
+        let expected = Token::new(Assert, StartEndSpan::new(0, 6));
         assert_eq!(token, &expected);
 
         let token = &scan("bool").unwrap()[0];
-        let expected = Token::new(Bool, (0, 4));
+        let expected = Token::new(Bool, StartEndSpan::new(0, 4));
         assert_eq!(token, &expected);
 
         let token = &scan("do").unwrap()[0];
-        let expected = Token::new(Do, (0, 2));
+        let expected = Token::new(Do, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
 
         let token = &scan("end").unwrap()[0];
-        let expected = Token::new(End, (0, 3));
+        let expected = Token::new(End, StartEndSpan::new(0, 3));
         assert_eq!(token, &expected);
 
         let token = &scan("for").unwrap()[0];
-        let expected = Token::new(For, (0, 3));
+        let expected = Token::new(For, StartEndSpan::new(0, 3));
         assert_eq!(token, &expected);
 
         let token = &scan("in").unwrap()[0];
-        let expected = Token::new(In, (0, 2));
+        let expected = Token::new(In, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
 
         let token = &scan("int").unwrap()[0];
-        let expected = Token::new(Int, (0, 3));
+        let expected = Token::new(Int, StartEndSpan::new(0, 3));
         assert_eq!(token, &expected);
 
         let token = &scan("print").unwrap()[0];
-        let expected = Token::new(Print, (0, 5));
+        let expected = Token::new(Print, StartEndSpan::new(0, 5));
         assert_eq!(token, &expected);
 
         let token = &scan("read").unwrap()[0];
-        let expected = Token::new(Read, (0, 4));
+        let expected = Token::new(Read, StartEndSpan::new(0, 4));
         assert_eq!(token, &expected);
 
         let token = &scan("string").unwrap()[0];
-        let expected = Token::new(String, (0, 6));
+        let expected = Token::new(String, StartEndSpan::new(0, 6));
         assert_eq!(token, &expected);
 
         let token = &scan("var").unwrap()[0];
-        let expected = Token::new(Var, (0, 3));
+        let expected = Token::new(Var, StartEndSpan::new(0, 3));
         assert_eq!(token, &expected);
     }
 }

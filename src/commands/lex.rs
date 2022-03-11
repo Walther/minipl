@@ -35,10 +35,8 @@ pub fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
 
     for token in tokens {
         let token_name = &token.token;
-        let start = token.span.0;
-        let end = token.span.0 + token.span.1;
         report = report.with_label(
-            Label::new((&path, start..end))
+            Label::new((&path, token.span.start..token.span.end))
                 .with_message(format!("{token_name:?}"))
                 .with_color(colors.next()),
         );

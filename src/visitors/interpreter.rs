@@ -1,5 +1,6 @@
-use crate::tokens::RawToken::{
-    Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True,
+use crate::{
+    parsing::statement::{Statement, Stmt},
+    tokens::RawToken::{Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True},
 };
 
 use super::Visitor;
@@ -13,14 +14,37 @@ pub struct Interpreter;
 
 impl Interpreter {
     /// The primary function of the [Interpreter]: returns the evaluated [Object] value of a given expression
-    pub fn eval(&mut self, ast: &Expr) -> Result<Object, Error> {
-        match ast {
+    pub fn eval(&mut self, expr: &Expr) -> Result<Object, Error> {
+        match expr {
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
             Expr::Unary(u) => self.visit_unary(u),
         }
+    }
+
+    /// The primary function of the [Interpreter]: evaluates all statements
+    pub fn eval_all(&mut self, statements: &[Statement]) -> Result<(), Error> {
+        for statement in statements {
+            let expr = match &statement.stmt {
+                Stmt::Expr(expr) => expr,
+                Stmt::Print(expr) => expr,
+            };
+            let result = match &expr.expr {
+                Expr::Binary(b) => self.visit_binary(b),
+                Expr::Grouping(g) => self.visit_grouping(g),
+                Expr::Literal(l) => self.visit_literal(l),
+                Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
+                Expr::Unary(u) => self.visit_unary(u),
+            }?;
+
+            if let Stmt::Print(_expr) = &statement.stmt {
+                println!("{:?}", result)
+            }
+        }
+
+        Ok(())
     }
 }
 

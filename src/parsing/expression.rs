@@ -1,6 +1,6 @@
 #![allow(missing_docs)] // TODO: document
 
-use crate::tokens::Token;
+use crate::{span::StartEndSpan, tokens::Token};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -9,6 +9,18 @@ pub enum Expr {
     Literal(Literal),
     Operator(Operator),
     Unary(Unary),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expression {
+    pub expr: Expr,
+    pub span: StartEndSpan,
+}
+
+impl Expression {
+    pub fn new(expr: Expr, span: StartEndSpan) -> Self {
+        Self { expr, span }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

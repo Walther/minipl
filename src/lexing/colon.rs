@@ -1,3 +1,5 @@
+use crate::span::StartEndSpan;
+
 use super::Assign;
 use super::Colon;
 use super::Token;
@@ -11,24 +13,24 @@ pub(crate) fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     let (start, _) = iter.next().unwrap();
     // Is this an Assign operator?
     if let Some((_end, _)) = iter.next_if(|&(_, char)| char == '=') {
-        Token::new(Assign, (start, 2))
+        Token::new(Assign, StartEndSpan::new(start, start + 2))
     } else {
         // Otherwise, it's just a Colon
-        Token::new(Colon, (start, 1))
+        Token::new(Colon, StartEndSpan::new(start, start + 1))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::lexing::*;
+    use crate::{lexing::*, span::StartEndSpan};
     #[test]
     fn colon() {
         let token = &scan(":").unwrap()[0];
-        let expected = Token::new(Colon, (0, 1));
+        let expected = Token::new(Colon, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(":=").unwrap()[0];
-        let expected = Token::new(Assign, (0, 2));
+        let expected = Token::new(Assign, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
     }
 }

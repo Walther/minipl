@@ -1,9 +1,9 @@
 use std::fs;
 
-use minipl::lexing::scan;
 use minipl::parsing::parse;
 use minipl::tokens::RawToken;
 use minipl::visitors::ASTPrinter;
+use minipl::{lexing::scan, parsing::statement::Stmt};
 
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
@@ -26,10 +26,8 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
 
         for token in &tokens {
             if let RawToken::Error(message) = token.token.clone() {
-                let start = token.span.0;
-                let end = token.span.0 + token.span.1;
                 report = report.with_label(
-                    Label::new((&path, start..end))
+                    Label::new((&path, token.span.start..token.span.end))
                         .with_message(message)
                         .with_color(colors.next()),
                 );
@@ -56,8 +54,8 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
         return Ok(());
     }
 
-    let ast = match parse(tokens) {
-        Ok(ast) => ast,
+    let statements = match parse(tokens) {
+        Ok(statements) => statements,
         Err(err) => {
             let report: miette::Report = err.into();
             return Err(report.with_source_code(source));
@@ -66,8 +64,15 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
 
     // 4. AST prettyprinting
     let mut astprinter = ASTPrinter::default();
-    let prettyprint = astprinter.print(&ast)?;
-    println!("{}", prettyprint);
+    for statement in statements {
+        // TODO: this feels highly unergonomic and not much like visitor pattern
+        let expr = match statement.stmt {
+            Stmt::Expr(expr) => expr,
+            Stmt::Print(expr) => expr,
+        };
+        let prettyprint = astprinter.print(&expr.expr)?;
+        println!("{}", prettyprint);
+    }
 
     Ok(())
 }

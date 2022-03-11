@@ -26,10 +26,8 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
 
         for token in &tokens {
             if let RawToken::Error(message) = token.token.clone() {
-                let start = token.span.0;
-                let end = token.span.0 + token.span.1;
                 report = report.with_label(
-                    Label::new((&path, start..end))
+                    Label::new((&path, token.span.start..token.span.end))
                         .with_message(message)
                         .with_color(colors.next()),
                 );
@@ -56,8 +54,8 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
         return Ok(());
     }
 
-    let ast = match parse(tokens) {
-        Ok(ast) => ast,
+    let statements = match parse(tokens) {
+        Ok(statements) => statements,
         Err(err) => {
             let report: miette::Report = err.into();
             return Err(report.with_source_code(source));
@@ -66,13 +64,12 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
 
     // 4. Evaluation
     let mut interpreter = Interpreter::default();
-    match interpreter.eval(&ast) {
-        Ok(result) => println!("{:?}", result),
+    match interpreter.eval_all(&statements) {
+        // NOTE: we discard any returned values
+        Ok(_result) => Ok(()),
         Err(err) => {
             let report: miette::Report = err;
-            return Err(report.with_source_code(source));
+            Err(report.with_source_code(source))
         }
-    };
-
-    Ok(())
+    }
 }

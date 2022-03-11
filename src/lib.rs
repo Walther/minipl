@@ -19,3 +19,6 @@ pub mod parsing;
 pub mod tokens;
 /// The visitors for the Mini-PL language
 pub mod visitors;
+
+/// Internal span helper
+pub mod span;

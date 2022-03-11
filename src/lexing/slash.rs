@@ -1,3 +1,5 @@
+use crate::span::StartEndSpan;
+
 use super::Comment;
 use super::Slash;
 use super::Token;
@@ -22,25 +24,25 @@ pub(crate) fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
                 length += 1;
             }
         }
-        return Token::new(Comment, (start, length));
+        return Token::new(Comment, StartEndSpan::new(start, start + length));
     }
     // TODO: multi-line comments with nesting support
 
     // Not a comment, just a slash
-    Token::new(Slash, (start, 1))
+    Token::new(Slash, StartEndSpan::new(start, start + 1))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::lexing::*;
+    use crate::{lexing::*, span::StartEndSpan};
     #[test]
     fn comments() {
         let token = &scan("//\n").unwrap()[0];
-        let expected = Token::new(Comment, (0, 2));
+        let expected = Token::new(Comment, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
 
         let token = &scan("// I am a comment\n").unwrap()[0];
-        let expected = Token::new(Comment, (0, 17));
+        let expected = Token::new(Comment, StartEndSpan::new(0, 17));
         assert_eq!(token, &expected);
     }
 }

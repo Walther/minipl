@@ -1,3 +1,5 @@
+use crate::span::StartEndSpan;
+
 use super::Token;
 use super::Whitespace;
 use std::iter::Enumerate;
@@ -13,32 +15,32 @@ pub(crate) fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
         length += 1;
     }
 
-    Token::new(Whitespace, (start, length))
+    Token::new(Whitespace, StartEndSpan::new(start, start + length))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::lexing::*;
+    use crate::{lexing::*, span::StartEndSpan};
     #[test]
     fn whitespace() {
         let token = &scan(" ").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("\n").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("\r").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("\t").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 1));
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(" \n \n ").unwrap()[0];
-        let expected = Token::new(Whitespace, (0, 5));
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 5));
         assert_eq!(token, &expected);
     }
 }

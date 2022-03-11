@@ -6,8 +6,8 @@ use std::{
 use miette::{miette, Error};
 use tracing::debug;
 
-use crate::tokens::RawToken::*;
 use crate::tokens::Token;
+use crate::{span::StartEndSpan, tokens::RawToken::*};
 
 mod colon;
 mod identifier;
@@ -40,10 +40,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
         }
     }
 
-    tokens.push(Token {
-        token: EOF,
-        span: (length, 0),
-    });
+    tokens.push(Token::new(EOF, StartEndSpan::new(length, length)));
     Ok(tokens)
 }
 
@@ -60,16 +57,16 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
 
     let token: Token = match char {
         // Single-character tokens
-        '&' => Token::new(And, (start, 1)),
-        '!' => Token::new(Bang, (start, 1)),
-        '<' => Token::new(Less, (start, 1)),
-        '-' => Token::new(Minus, (start, 1)),
-        '(' => Token::new(ParenLeft, (start, 1)),
-        ')' => Token::new(ParenRight, (start, 1)),
-        '+' => Token::new(Plus, (start, 1)),
-        ';' => Token::new(Semicolon, (start, 1)),
-        '*' => Token::new(Star, (start, 1)),
-        '=' => Token::new(Equal, (start, 1)),
+        '&' => Token::new(And, StartEndSpan::new(start, start + 1)),
+        '!' => Token::new(Bang, StartEndSpan::new(start, start + 1)),
+        '<' => Token::new(Less, StartEndSpan::new(start, start + 1)),
+        '-' => Token::new(Minus, StartEndSpan::new(start, start + 1)),
+        '(' => Token::new(ParenLeft, StartEndSpan::new(start, start + 1)),
+        ')' => Token::new(ParenRight, StartEndSpan::new(start, start + 1)),
+        '+' => Token::new(Plus, StartEndSpan::new(start, start + 1)),
+        ';' => Token::new(Semicolon, StartEndSpan::new(start, start + 1)),
+        '*' => Token::new(Star, StartEndSpan::new(start, start + 1)),
+        '=' => Token::new(Equal, StartEndSpan::new(start, start + 1)),
         // NOTE: we consume the char for these ^ at the end with a glob match in order to reduce line noise
 
         // Colon: possibly an Assign, or just a Colon
@@ -97,7 +94,10 @@ pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error>
         _ => {
             // Consume and report
             iter.next();
-            Token::new(Error(format!("Unknown token {char}")), (start, 1))
+            Token::new(
+                Error(format!("Unknown token {char}")),
+                StartEndSpan::new(start, start + 1),
+            )
         }
     };
 
@@ -122,51 +122,51 @@ mod tests {
     #[test]
     fn single_character_tokens() {
         let token = &scan("&").unwrap()[0];
-        let expected = Token::new(And, (0, 1));
+        let expected = Token::new(And, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("!").unwrap()[0];
-        let expected = Token::new(Bang, (0, 1));
+        let expected = Token::new(Bang, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(":").unwrap()[0];
-        let expected = Token::new(Colon, (0, 1));
+        let expected = Token::new(Colon, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("=").unwrap()[0];
-        let expected = Token::new(Equal, (0, 1));
+        let expected = Token::new(Equal, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("<").unwrap()[0];
-        let expected = Token::new(Less, (0, 1));
+        let expected = Token::new(Less, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("-").unwrap()[0];
-        let expected = Token::new(Minus, (0, 1));
+        let expected = Token::new(Minus, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("(").unwrap()[0];
-        let expected = Token::new(ParenLeft, (0, 1));
+        let expected = Token::new(ParenLeft, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(")").unwrap()[0];
-        let expected = Token::new(ParenRight, (0, 1));
+        let expected = Token::new(ParenRight, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("+").unwrap()[0];
-        let expected = Token::new(Plus, (0, 1));
+        let expected = Token::new(Plus, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan(";").unwrap()[0];
-        let expected = Token::new(Semicolon, (0, 1));
+        let expected = Token::new(Semicolon, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("/").unwrap()[0];
-        let expected = Token::new(Slash, (0, 1));
+        let expected = Token::new(Slash, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
 
         let token = &scan("*").unwrap()[0];
-        let expected = Token::new(Star, (0, 1));
+        let expected = Token::new(Star, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
     }
 
@@ -174,10 +174,10 @@ mod tests {
     fn simple_math1() {
         let tokens = &scan("1+2").unwrap();
         let expected = vec![
-            Token::new(Number(1), (0, 1)),
-            Token::new(Plus, (1, 1)),
-            Token::new(Number(2), (2, 1)),
-            Token::new(EOF, (3, 0)),
+            Token::new(Number(1), StartEndSpan::new(0, 1)),
+            Token::new(Plus, StartEndSpan::new(1, 2)),
+            Token::new(Number(2), StartEndSpan::new(2, 3)),
+            Token::new(EOF, StartEndSpan::new(3, 3)),
         ];
         assert_eq!(tokens, &expected);
     }
@@ -186,14 +186,14 @@ mod tests {
     fn simple_math2() {
         let tokens = &scan("2*2/2=2").unwrap();
         let expected = vec![
-            Token::new(Number(2), (0, 1)),
-            Token::new(Star, (1, 1)),
-            Token::new(Number(2), (2, 1)),
-            Token::new(Slash, (3, 1)),
-            Token::new(Number(2), (4, 1)),
-            Token::new(Equal, (5, 1)),
-            Token::new(Number(2), (6, 1)),
-            Token::new(EOF, (7, 0)),
+            Token::new(Number(2), StartEndSpan::new(0, 1)),
+            Token::new(Star, StartEndSpan::new(1, 2)),
+            Token::new(Number(2), StartEndSpan::new(2, 3)),
+            Token::new(Slash, StartEndSpan::new(3, 4)),
+            Token::new(Number(2), StartEndSpan::new(4, 5)),
+            Token::new(Equal, StartEndSpan::new(5, 6)),
+            Token::new(Number(2), StartEndSpan::new(6, 7)),
+            Token::new(EOF, StartEndSpan::new(7, 7)),
         ];
         assert_eq!(tokens, &expected);
     }

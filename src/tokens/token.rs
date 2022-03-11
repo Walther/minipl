@@ -1,3 +1,4 @@
+use crate::span::StartEndSpan;
 use crate::tokens::rawtoken::RawToken;
 use crate::tokens::rawtoken::RawToken::Error;
 
@@ -6,14 +7,14 @@ use crate::tokens::rawtoken::RawToken::Error;
 pub struct Token {
     /// The raw token itself
     pub token: RawToken,
-    /// A tuple of `(start, length)`. An example single-letter token `x` would have span `(0,1)`, a string token `"abc"` would have span `(0,5). Used for [miette]-compatible code spans in error reporting.
-    pub span: (usize, usize),
+    /// The span i.e. the location descriptor of the token
+    pub span: StartEndSpan,
 }
 
 impl Token {
     #[must_use]
     /// Creates a new [Token] type, when given a [`RawToken`] and a span `(start, length)`
-    pub fn new(token: RawToken, span: (usize, usize)) -> Self {
+    pub fn new(token: RawToken, span: StartEndSpan) -> Self {
         Self { token, span }
     }
 
