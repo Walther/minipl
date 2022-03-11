@@ -23,12 +23,16 @@ pub(crate) fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 #[cfg(test)]
 mod tests {
     use crate::{lexing::*, span::StartEndSpan};
+
     #[test]
     fn colon() {
         let token = &scan(":").unwrap()[0];
         let expected = Token::new(Colon, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn assign() {
         let token = &scan(":=").unwrap()[0];
         let expected = Token::new(Assign, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);

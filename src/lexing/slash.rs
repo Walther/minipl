@@ -36,11 +36,14 @@ pub(crate) fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 mod tests {
     use crate::{lexing::*, span::StartEndSpan};
     #[test]
-    fn comments() {
+    fn comment_empty() {
         let token = &scan("//\n").unwrap()[0];
         let expected = Token::new(Comment, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn comment_singleline() {
         let token = &scan("// I am a comment\n").unwrap()[0];
         let expected = Token::new(Comment, StartEndSpan::new(0, 17));
         assert_eq!(token, &expected);

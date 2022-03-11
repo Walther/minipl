@@ -21,26 +21,39 @@ pub(crate) fn scan_whitespace(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 #[cfg(test)]
 mod tests {
     use crate::{lexing::*, span::StartEndSpan};
+
     #[test]
-    fn whitespace() {
+    fn space() {
         let token = &scan(" ").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn newline() {
         let token = &scan("\n").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn carriage_return() {
         let token = &scan("\r").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn horizontal_tab() {
         let token = &scan("\t").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
-        let token = &scan(" \n \n ").unwrap()[0];
-        let expected = Token::new(Whitespace, StartEndSpan::new(0, 5));
+    #[test]
+    fn mixed_whitespace() {
+        let token = &scan(" \n \r \t ").unwrap()[0];
+        let expected = Token::new(Whitespace, StartEndSpan::new(0, 7));
         assert_eq!(token, &expected);
     }
 }

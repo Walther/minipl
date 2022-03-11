@@ -28,12 +28,16 @@ pub(crate) fn scan_number(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 #[cfg(test)]
 mod tests {
     use crate::{lexing::*, span::StartEndSpan};
+
     #[test]
-    fn number() {
+    fn number_singledigit() {
         let token = &scan("1").unwrap()[0];
         let expected = Token::new(Number(1), StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn number_multidigit() {
         let token = &scan("1234567890").unwrap()[0];
         let expected = Token::new(Number(1234567890), StartEndSpan::new(0, 10));
         assert_eq!(token, &expected);

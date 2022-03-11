@@ -26,17 +26,23 @@ pub(crate) fn scan_range(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 #[cfg(test)]
 mod tests {
     use crate::{lexing::*, span::StartEndSpan};
+
     #[test]
-    fn range() {
+    fn range_singledot() {
         let token = &scan(".").unwrap()[0];
         let expected = Token::new(
             Error("Expected another '.' for Range operator".into()),
             StartEndSpan::new(0, 1),
         );
         assert_eq!(token, &expected);
+    }
 
+    #[test]
+    fn range_empty() {
         let token = &scan("..").unwrap()[0];
         let expected = Token::new(Range, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
     }
+
+    // TODO: valid range test, 1..10
 }
