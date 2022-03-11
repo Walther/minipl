@@ -20,25 +20,25 @@ pub(crate) fn scan_identifier(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
     }
     let end = start + length;
 
-    match identifier.as_ref() {
+    let raw_token = match identifier.as_ref() {
         // Is this a keyword?
-        // TODO: const hashmap and a simple get method?
-        "assert" => Token::new(Assert, StartEndSpan::new(start, end)),
-        "bool" => Token::new(Bool, StartEndSpan::new(start, end)),
-        "do" => Token::new(Do, StartEndSpan::new(start, end)),
-        "end" => Token::new(End, StartEndSpan::new(start, end)),
-        "false" => Token::new(False, StartEndSpan::new(start, end)),
-        "for" => Token::new(For, StartEndSpan::new(start, end)),
-        "in" => Token::new(In, StartEndSpan::new(start, end)),
-        "int" => Token::new(Int, StartEndSpan::new(start, end)),
-        "print" => Token::new(Print, StartEndSpan::new(start, end)),
-        "read" => Token::new(Read, StartEndSpan::new(start, end)),
-        "string" => Token::new(String, StartEndSpan::new(start, end)),
-        "true" => Token::new(True, StartEndSpan::new(start, end)),
-        "var" => Token::new(Var, StartEndSpan::new(start, end)),
+        "assert" => Assert,
+        "bool" => Bool,
+        "do" => Do,
+        "end" => End,
+        "false" => False,
+        "for" => For,
+        "in" => In,
+        "int" => Int,
+        "print" => Print,
+        "read" => Read,
+        "string" => String,
+        "true" => True,
+        "var" => Var,
         // Otherwise, assume it's a user-defined identifier name
-        _ => Token::new(Identifier(identifier), StartEndSpan::new(start, end)),
-    }
+        _ => Identifier(identifier),
+    };
+    Token::new(raw_token, StartEndSpan::new(start, end))
 }
 
 #[cfg(test)]
