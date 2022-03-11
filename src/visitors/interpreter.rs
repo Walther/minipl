@@ -13,6 +13,13 @@ use miette::{miette, Error, Result};
 pub struct Interpreter;
 
 impl Interpreter {
+    /// Creates a new [Interpreter] object
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Interpreter {
     /// The primary function of the [Interpreter]: returns the evaluated [Object] value of a given expression
     pub fn eval(&mut self, expr: &Expr) -> Result<Object, Error> {
         match expr {

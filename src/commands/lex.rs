@@ -10,17 +10,11 @@ use tracing::info;
 
 pub fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
-    let mut tokens = scan(&source)?;
-
-    // Ignore certain elements when printing the lexing report, unless in verbose mode
-    if !verbose {
-        tokens.retain(|token| {
-            !matches!(
-                token.token,
-                RawToken::Whitespace | RawToken::Semicolon | RawToken::EOF
-            )
-        });
-    }
+    let tokens = if verbose {
+        scan_verbose(&source)?
+    } else {
+        scan(&source)?
+    };
 
     if tokens.is_empty() || tokens[0].tokentype() == RawToken::EOF {
         info!("Nothing to lex. Source code was empty.");

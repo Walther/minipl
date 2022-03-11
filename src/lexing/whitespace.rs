@@ -24,35 +24,35 @@ mod tests {
 
     #[test]
     fn space() {
-        let token = &scan(" ").unwrap()[0];
+        let token = &scan_verbose(" ").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
     }
 
     #[test]
     fn newline() {
-        let token = &scan("\n").unwrap()[0];
+        let token = &scan_verbose("\n").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
     }
 
     #[test]
     fn carriage_return() {
-        let token = &scan("\r").unwrap()[0];
+        let token = &scan_verbose("\r").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
     }
 
     #[test]
     fn horizontal_tab() {
-        let token = &scan("\t").unwrap()[0];
+        let token = &scan_verbose("\t").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 1));
         assert_eq!(token, &expected);
     }
 
     #[test]
     fn mixed_whitespace() {
-        let token = &scan(" \n \r \t ").unwrap()[0];
+        let token = &scan_verbose(" \n \r \t ").unwrap()[0];
         let expected = Token::new(Whitespace, StartEndSpan::new(0, 7));
         assert_eq!(token, &expected);
     }

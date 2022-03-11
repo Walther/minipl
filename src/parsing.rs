@@ -11,8 +11,8 @@ use statement::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Print, Semicolon, Slash,
-    Star, Text, True,
+    self, Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Print, Semicolon,
+    Slash, Star, Text, True,
 };
 use crate::tokens::Token;
 
@@ -38,7 +38,12 @@ pub enum ParseError {
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
     let mut tokens = tokens.iter().cloned().peekable();
     let mut statements: Vec<Statement> = Vec::new();
-    while tokens.peek().is_some() {
+    while let Some(token) = tokens.peek() {
+        // TODO: better handling
+        if token.tokentype() == RawToken::EOF {
+            tokens.next();
+            break;
+        }
         let stmt = statement(&mut tokens)?;
         statements.push(stmt);
     }

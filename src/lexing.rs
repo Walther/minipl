@@ -30,6 +30,15 @@ use whitespace::scan_whitespace;
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
 /// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
 pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
+    // Use the verbose version
+    let mut tokens = scan_verbose(input)?;
+    // Then remove ignorables
+    tokens.retain(|token| !matches!(token.token, Whitespace));
+    Ok(tokens)
+}
+
+/// Alternative for [scan], but does not delete ignorable tokens
+pub fn scan_verbose(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = Vec::new();
     let length = input.len();
     let mut iter: Peekable<Enumerate<Chars>> = input.chars().enumerate().peekable();
