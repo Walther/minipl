@@ -20,3 +20,4 @@
 | 2022-03-05 | 2     | Parsing: initial cli command for ast print, examples                                             |
 | 2022-03-06 | 10    | Parsing: Visitor pattern, proper ASTPrinter. Interpreter: scaffolding.                           |
 | 2022-03-08 | 10    | Refactoring. Interpreter: evaluation of simple expressions. More refactoring and error handling. |
+| 2022-03-11 | 10    | Interpreter: statements support. Massive amounts of refactoring.                                 |
