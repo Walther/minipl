@@ -1,6 +1,6 @@
 #![allow(missing_docs)] // TODO: document
 
-use crate::{span::StartEndSpan, tokens::Token};
+use crate::{span::StartEndSpan, tokens::Token, visitors::Visitable};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -81,5 +81,11 @@ impl Unary {
             operator,
             right: Box::new(right),
         }
+    }
+}
+
+impl From<Expression> for Visitable {
+    fn from(val: Expression) -> Self {
+        Visitable::Expression(val)
     }
 }

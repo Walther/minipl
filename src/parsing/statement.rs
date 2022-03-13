@@ -1,10 +1,10 @@
-use crate::span::StartEndSpan;
+use crate::{span::StartEndSpan, visitors::Visitable};
 
 use super::expression::Expression;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
-    Expr(Expression),
+    Expression(Expression),
     Print(Expression),
 }
 
@@ -17,9 +17,15 @@ pub struct Statement {
 impl Statement {
     pub fn new(stmt: Stmt) -> Self {
         let span = match &stmt {
-            Stmt::Expr(e) => e.span,
+            Stmt::Expression(e) => e.span,
             Stmt::Print(e) => e.span,
         };
         Self { stmt, span }
+    }
+}
+
+impl From<Statement> for Visitable {
+    fn from(val: Statement) -> Self {
+        Visitable::Statement(val)
     }
 }

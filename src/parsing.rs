@@ -8,6 +8,7 @@ pub mod expression;
 use expression::*;
 pub mod statement;
 use statement::*;
+pub mod variable;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
@@ -84,7 +85,7 @@ pub fn epxr_statement(
 ) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
     if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
-        Ok(Statement::new(Stmt::Expr(expr)))
+        Ok(Statement::new(Stmt::Expression(expr)))
     } else {
         Err(ParseError::MissingSemicolon(expr.span.into()))
     }
@@ -244,7 +245,7 @@ mod tests {
         let one = Token::new(Number(1), StartEndSpan::new(0, 1));
         let semi = Token::new(Semicolon, StartEndSpan::new(1, 1));
         let parsed = parse(vec![one.clone(), semi]).unwrap();
-        let expected = Statement::new(Stmt::Expr(Expression::new(
+        let expected = Statement::new(Stmt::Expression(Expression::new(
             Expr::Literal(Literal::new(one)),
             StartEndSpan::new(0, 1),
         )));
@@ -262,7 +263,7 @@ mod tests {
         let tokens = vec![one1.clone(), equal.clone(), one2.clone(), semi];
 
         let parsed = parse(tokens).unwrap();
-        let expected = Statement::new(Stmt::Expr(Expression::new(
+        let expected = Statement::new(Stmt::Expression(Expression::new(
             Expr::Binary(Binary::new(
                 Expr::Literal(Literal::new(one1)),
                 equal,

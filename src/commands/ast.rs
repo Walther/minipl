@@ -1,9 +1,9 @@
 use std::fs;
 
+use minipl::lexing::scan;
 use minipl::parsing::parse;
 use minipl::tokens::RawToken;
 use minipl::visitors::ASTPrinter;
-use minipl::{lexing::scan, parsing::statement::Stmt};
 
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
@@ -65,12 +65,7 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
     // 4. AST prettyprinting
     let mut astprinter = ASTPrinter::default();
     for statement in statements {
-        // TODO: this feels highly unergonomic and not much like visitor pattern
-        let expr = match statement.stmt {
-            Stmt::Expr(expr) => expr,
-            Stmt::Print(expr) => expr,
-        };
-        let prettyprint = astprinter.print(&expr.expr)?;
+        let prettyprint = astprinter.print(&statement.into())?;
         println!("{}", prettyprint);
     }
 

@@ -3,7 +3,7 @@ use crate::{
     tokens::RawToken::{Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True},
 };
 
-use super::Visitor;
+use super::{Visitable, Visitor};
 use crate::parsing::expression::*;
 
 use miette::{miette, Error, Result};
@@ -21,13 +21,11 @@ impl Interpreter {
 
 impl Interpreter {
     /// The primary function of the [Interpreter]: returns the evaluated [Object] value of a given expression
-    pub fn eval(&mut self, expr: &Expr) -> Result<Object, Error> {
-        match expr {
-            Expr::Binary(b) => self.visit_binary(b),
-            Expr::Grouping(g) => self.visit_grouping(g),
-            Expr::Literal(l) => self.visit_literal(l),
-            Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
-            Expr::Unary(u) => self.visit_unary(u),
+    pub fn eval(&mut self, visitable: &Visitable) -> Result<Object> {
+        match visitable {
+            Visitable::Expression(e) => self.visit_expression(e),
+            Visitable::Statement(s) => self.visit_statement(s),
+            Visitable::Variable(v) => self.visit_variable(v),
         }
     }
 
@@ -35,7 +33,7 @@ impl Interpreter {
     pub fn eval_all(&mut self, statements: &[Statement]) -> Result<(), Error> {
         for statement in statements {
             let expr = match &statement.stmt {
-                Stmt::Expr(expr) => expr,
+                Stmt::Expression(expr) => expr,
                 Stmt::Print(expr) => expr,
             };
             let result = match &expr.expr {
@@ -53,51 +51,22 @@ impl Interpreter {
 
         Ok(())
     }
-}
 
-// TODO: does this make any sense whatsoever?
+    // TODO: cleanup
 
-#[derive(Debug, Clone)]
-/// The main enum of the runtime values within the language interpretation process
-pub enum Object {
-    /// Number value
-    Number(i64),
-    /// Text value
-    Text(String),
-    /// Boolean value
-    Boolean(bool),
-}
-
-impl Object {
-    /// Fallible cast of an [Object] to an [i64].
-    pub fn as_numeric(&self) -> Result<i64, Error> {
-        match self {
-            Object::Number(n) => Ok(*n),
-            _ => Err(miette!("Expected a numeric value, got: {:?}", self)),
+    fn eval_expr(&mut self, expr: &Expr) -> Result<Object> {
+        match expr {
+            Expr::Binary(b) => self.visit_binary(b),
+            Expr::Grouping(g) => self.visit_grouping(g),
+            Expr::Literal(l) => self.visit_literal(l),
+            Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
+            Expr::Unary(u) => self.visit_unary(u),
         }
     }
 
-    /// Fallible cast of an [Object] to a [bool].
-    pub fn as_bool(&self) -> Result<bool, Error> {
-        match self {
-            Object::Boolean(b) => Ok(*b),
-            _ => Err(miette!("Expected a boolean value, got: {:?}", self)),
-        }
-    }
-
-    /// Fallible cast of an [Object] to a [String].
-    pub fn as_text(&self) -> Result<String, Error> {
-        match self {
-            Object::Text(s) => Ok(s.to_string()),
-            _ => Err(miette!("Expected a text value, got: {:?}", self)),
-        }
-    }
-}
-
-impl Visitor<Object, Error> for Interpreter {
-    fn visit_binary(&mut self, b: &Binary) -> Result<Object, Error> {
-        let right = self.eval(&b.right)?;
-        let left = self.eval(&b.left)?;
+    fn visit_binary(&mut self, b: &Binary) -> Result<Object> {
+        let right = self.eval_expr(&b.right)?;
+        let left = self.eval_expr(&b.left)?;
         let tokentype = b.operator.tokentype();
         let result = match tokentype {
             Minus => Object::Number(left.as_numeric()? - right.as_numeric()?),
@@ -153,11 +122,11 @@ impl Visitor<Object, Error> for Interpreter {
         Ok(result)
     }
 
-    fn visit_grouping(&mut self, g: &Grouping) -> Result<Object, Error> {
-        self.eval(&g.expression)
+    fn visit_grouping(&mut self, g: &Grouping) -> Result<Object> {
+        self.eval_expr(&g.expression)
     }
 
-    fn visit_literal(&mut self, l: &Literal) -> Result<Object, Error> {
+    fn visit_literal(&mut self, l: &Literal) -> Result<Object> {
         let result = match &l.value.token {
             Number(n) => Object::Number(*n),
             Text(t) => Object::Text(t.clone()),
@@ -168,13 +137,73 @@ impl Visitor<Object, Error> for Interpreter {
         Ok(result)
     }
 
-    fn visit_unary(&mut self, u: &Unary) -> Result<Object, Error> {
-        let right = self.eval(&u.right)?;
+    fn visit_unary(&mut self, u: &Unary) -> Result<Object> {
+        let right = self.eval_expr(&u.right)?;
         let result = match u.operator.tokentype() {
             Minus => Object::Number(-right.as_numeric()?),
             Bang => Object::Boolean(!right.as_bool()?),
             _ => return Err(miette!("Unexpected unary operator: {:?}", u.operator)),
         };
         Ok(result)
+    }
+}
+
+// TODO: does this make any sense whatsoever?
+
+#[derive(Debug, Clone)]
+/// The main enum of the runtime values within the language interpretation process
+pub enum Object {
+    /// Number value
+    Number(i64),
+    /// Text value
+    Text(String),
+    /// Boolean value
+    Boolean(bool),
+}
+
+impl Object {
+    /// Fallible cast of an [Object] to an [i64].
+    pub fn as_numeric(&self) -> Result<i64, Error> {
+        match self {
+            Object::Number(n) => Ok(*n),
+            _ => Err(miette!("Expected a numeric value, got: {:?}", self)),
+        }
+    }
+
+    /// Fallible cast of an [Object] to a [bool].
+    pub fn as_bool(&self) -> Result<bool, Error> {
+        match self {
+            Object::Boolean(b) => Ok(*b),
+            _ => Err(miette!("Expected a boolean value, got: {:?}", self)),
+        }
+    }
+
+    /// Fallible cast of an [Object] to a [String].
+    pub fn as_text(&self) -> Result<String, Error> {
+        match self {
+            Object::Text(s) => Ok(s.to_string()),
+            _ => Err(miette!("Expected a text value, got: {:?}", self)),
+        }
+    }
+}
+
+impl Visitor<Object> for Interpreter {
+    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
+        let expr = expression.expr.clone();
+        match &expr {
+            Expr::Binary(b) => self.visit_binary(b),
+            Expr::Grouping(g) => self.visit_grouping(g),
+            Expr::Literal(l) => self.visit_literal(l),
+            Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
+            Expr::Unary(u) => self.visit_unary(u),
+        }
+    }
+
+    fn visit_statement(&mut self, _statement: &Statement) -> Result<Object> {
+        todo!()
+    }
+
+    fn visit_variable(&mut self, _variable: &crate::parsing::variable::Variable) -> Result<Object> {
+        todo!()
     }
 }
