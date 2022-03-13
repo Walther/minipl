@@ -10,7 +10,7 @@ mod valid {
         let tokens = scan(source).unwrap();
         let parsed = parse(tokens).unwrap();
         let mut interpreter = Interpreter::new();
-        interpreter.eval_all(&parsed).unwrap();
+        interpreter.eval(&parsed).unwrap();
     }
 
     #[test]
@@ -19,7 +19,25 @@ mod valid {
         let tokens = scan(source).unwrap();
         let parsed = parse(tokens).unwrap();
         let mut interpreter = Interpreter::new();
-        interpreter.eval_all(&parsed).unwrap();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn var_with_assign() {
+        let source = include_str!("sources/valid/var_with_assign.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn var_without_assign() {
+        let source = include_str!("sources/valid/var_without_assign.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
     }
 }
 

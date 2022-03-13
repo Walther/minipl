@@ -8,6 +8,7 @@ pub mod expression;
 use expression::*;
 pub mod statement;
 use statement::*;
+pub mod environment;
 pub mod variable;
 
 use crate::span::StartEndSpan;
@@ -17,7 +18,7 @@ use crate::tokens::RawToken::{
 };
 use crate::tokens::Token;
 
-use self::variable::Variable;
+use self::variable::{VarType, Variable};
 
 #[derive(Error, Debug, Diagnostic)]
 #[error("Parse error")]
@@ -122,10 +123,12 @@ pub fn var_declaration(
         return Err(ParseError::OutOfTokens((0, 0).into()));
     }
     // get type annotation
-    let mut _expected; // TODO: type checking!
+    let kind; // TODO: type checking!
     if let Some(next) = tokens.next() {
         match next.tokentype() {
-            Bool | Int | RawToken::String => _expected = next.tokentype(),
+            Bool => kind = VarType::Bool,
+            Int => kind = VarType::Int,
+            Text(_) => kind = VarType::Text,
             _ => {
                 return Err(ParseError::ExpectedTypeAnnotation(
                     format!("{:?}", next.token),
@@ -146,8 +149,9 @@ pub fn var_declaration(
             let span = StartEndSpan::new(var.span.start, initializer.span.end);
             // get semicolon
             if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
-                return Ok(Statement::new(Stmt::Variable(Variable::new(
+                return Ok(Statement::new(Stmt::VariableDefinition(Variable::new(
                     &identifier,
+                    kind,
                     Some(initializer),
                     span,
                 ))));
@@ -155,8 +159,9 @@ pub fn var_declaration(
                 return Err(ParseError::MissingSemicolon(span.into()));
             };
         } else if matches!(next.tokentype(), Semicolon) {
-            return Ok(Statement::new(Stmt::Variable(Variable::new(
+            return Ok(Statement::new(Stmt::VariableDefinition(Variable::new(
                 &identifier,
+                kind,
                 None,
                 StartEndSpan::new(var.span.start, next.span.end - 1),
             ))));
@@ -333,8 +338,7 @@ pub fn primary(
                 token.span,
             )),
             RawToken::Identifier(name) => {
-                // TODO: what should we do here?
-                Ok(Expression::new(Expr::Variable(name), token.span))
+                Ok(Expression::new(Expr::VariableUsage(name), token.span))
             }
             ParenLeft => {
                 let expr = expression(tokens)?;

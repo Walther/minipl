@@ -8,7 +8,7 @@ use crate::{
     tokens::RawToken,
 };
 
-use super::{Visitable, Visitor};
+use super::Visitor;
 use crate::parsing::expression::*;
 
 const INDENT: &str = "    ";
@@ -28,18 +28,8 @@ impl ASTPrinter {
     }
 
     /// The primary function of the [ASTPrinter]: returns the prettyprinted [String] representation of the abstract syntax tree of the given expression
-    pub fn print(&mut self, visitable: &Visitable) -> Result<String> {
-        match visitable {
-            Visitable::Expression(e) => self.visit_expression(e),
-            Visitable::Statement(s) => self.visit_statement(s),
-            Visitable::Variable(v) => self.visit_variable(v),
-        }
-    }
-
-    /// Silly helper for handling the recursion with the metadata-less internal types
-    /// // TODO: cleanup
-    fn print_expr(&mut self, e: &Expr) -> Result<String> {
-        self.visit_expr(e)
+    pub fn print(&mut self, statement: &Statement) -> Result<String> {
+        self.visit_statement(statement)
     }
 
     fn parenthesize_exprs(
@@ -59,7 +49,7 @@ impl ASTPrinter {
         string.push_str(format!("({}", name).as_str());
         for expr in exprs {
             string.push(' ');
-            string.push_str(&self.print_expr(&expr)?);
+            string.push_str(&self.visit_expr(&expr)?);
         }
 
         // TODO: less hacky indent tree
@@ -96,7 +86,7 @@ impl ASTPrinter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
             Expr::Unary(u) => self.visit_unary(u),
-            Expr::Variable(name) => Ok(name.to_string()),
+            Expr::VariableUsage(name) => self.visit_variable_usage(name),
         }
     }
 
@@ -130,12 +120,35 @@ impl ASTPrinter {
         self.nest_level -= 1;
         Ok(string)
     }
+
+    fn visit_variable_definition(&mut self, variable: &Variable) -> Result<String> {
+        match &variable.initializer {
+            Some(expression) => {
+                let exprs = vec![expression.expr.clone()].into_iter();
+                self.nest_level += 1;
+                let string = self.parenthesize_exprs(
+                    format!(
+                        "Variable definition, name: {:?}, type: {:?}",
+                        variable.name, variable.kind
+                    )
+                    .as_str(),
+                    exprs,
+                )?;
+                self.nest_level -= 1;
+                Ok(string)
+            }
+            // TODO: correct indentation
+            None => Ok(format!(
+                "Variable definition, name: {:?}, type: {:?}",
+                variable.name, variable.kind
+            )),
+        }
+    }
 }
 
 impl Visitor<String> for ASTPrinter {
     fn visit_expression(&mut self, expression: &Expression) -> Result<String> {
-        let expr = expression.expr.clone();
-        self.visit_expr(&expr)
+        self.visit_expr(&expression.expr)
     }
 
     fn visit_statement(&mut self, statement: &Statement) -> Result<String> {
@@ -148,22 +161,11 @@ impl Visitor<String> for ASTPrinter {
                 self.nest_level -= 1;
                 Ok(string)
             }
-            Stmt::Variable(v) => self.visit_variable(v),
+            Stmt::VariableDefinition(v) => self.visit_variable_definition(v),
         }
     }
 
-    fn visit_variable(&mut self, variable: &Variable) -> Result<String> {
-        match &variable.initializer {
-            Some(expression) => {
-                let exprs = vec![expression.expr.clone()].into_iter();
-                self.nest_level += 1;
-                let string = self
-                    .parenthesize_exprs(format!("Variable {:?}", variable.name).as_str(), exprs)?;
-                self.nest_level -= 1;
-                Ok(string)
-            }
-            // TODO: correct indentation
-            None => Ok(format!("Variable {:?}", variable.name)),
-        }
+    fn visit_variable_usage(&mut self, name: &str) -> Result<String> {
+        Ok(format!("Variable usage, name: {name}"))
     }
 }

@@ -64,7 +64,7 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
 
     // 4. Evaluation
     let mut interpreter = Interpreter::default();
-    match interpreter.eval_all(&statements) {
+    match interpreter.eval(&statements) {
         // NOTE: we discard any returned values
         Ok(_result) => Ok(()),
         Err(err) => {

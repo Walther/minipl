@@ -1,4 +1,4 @@
-use crate::parsing::{expression::*, statement::Statement, variable::Variable};
+use crate::parsing::{expression::*, statement::Statement};
 
 /// Prettyprinter for the abstract syntax tree
 pub mod astprinter;
@@ -17,17 +17,5 @@ pub trait Visitor<T> {
     /// Statements
     fn visit_statement(&mut self, statement: &Statement) -> Result<T>;
     /// Variables
-    fn visit_variable(&mut self, variable: &Variable) -> Result<T>;
-}
-
-// TODO: does this make any sense
-/// Enum of all the Visitable objects in the language implementation
-#[derive(Debug, Clone, PartialEq)]
-pub enum Visitable {
-    /// An expression
-    Expression(Expression),
-    /// A statement
-    Statement(Statement),
-    /// A variable
-    Variable(Variable),
+    fn visit_variable_usage(&mut self, name: &str) -> Result<T>;
 }

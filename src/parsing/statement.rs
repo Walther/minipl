@@ -1,4 +1,4 @@
-use crate::{span::StartEndSpan, visitors::Visitable};
+use crate::span::StartEndSpan;
 
 use super::{expression::Expression, variable::Variable};
 
@@ -6,7 +6,7 @@ use super::{expression::Expression, variable::Variable};
 pub enum Stmt {
     Expression(Expression),
     Print(Expression),
-    Variable(Variable),
+    VariableDefinition(Variable),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -20,14 +20,8 @@ impl Statement {
         let span = match &stmt {
             Stmt::Expression(e) => e.span,
             Stmt::Print(e) => e.span,
-            Stmt::Variable(v) => v.span,
+            Stmt::VariableDefinition(v) => v.span,
         };
         Self { stmt, span }
-    }
-}
-
-impl From<Statement> for Visitable {
-    fn from(val: Statement) -> Self {
-        Visitable::Statement(val)
     }
 }

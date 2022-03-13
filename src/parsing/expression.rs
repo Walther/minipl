@@ -1,6 +1,6 @@
 #![allow(missing_docs)] // TODO: document
 
-use crate::{span::StartEndSpan, tokens::Token, visitors::Visitable};
+use crate::{span::StartEndSpan, tokens::Token};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -9,7 +9,7 @@ pub enum Expr {
     Literal(Literal),
     Operator(Operator),
     Unary(Unary),
-    Variable(String), //TODO: does this make sense?
+    VariableUsage(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,11 +82,5 @@ impl Unary {
             operator,
             right: Box::new(right),
         }
-    }
-}
-
-impl From<Expression> for Visitable {
-    fn from(val: Expression) -> Self {
-        Visitable::Expression(val)
     }
 }

@@ -1,54 +1,40 @@
+use std::fmt::Display;
+
 use crate::{
-    parsing::statement::{Statement, Stmt},
+    parsing::{
+        environment::Environment,
+        statement::{Statement, Stmt},
+        variable::Variable,
+    },
     tokens::RawToken::{Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True},
 };
 
-use super::{Visitable, Visitor};
+use super::Visitor;
 use crate::parsing::expression::*;
 
 use miette::{miette, Error, Result};
 
 #[derive(Debug, Default)]
 /// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the given expression
-pub struct Interpreter;
+pub struct Interpreter {
+    /// Environment for storing variables
+    pub environment: Environment,
+}
 
 impl Interpreter {
     /// Creates a new [Interpreter] object
     pub fn new() -> Self {
-        Self {}
+        Self {
+            environment: Default::default(),
+        }
     }
 }
 
 impl Interpreter {
-    /// The primary function of the [Interpreter]: returns the evaluated [Object] value of a given expression
-    pub fn eval(&mut self, visitable: &Visitable) -> Result<Object> {
-        match visitable {
-            Visitable::Expression(e) => self.visit_expression(e),
-            Visitable::Statement(s) => self.visit_statement(s),
-            Visitable::Variable(v) => self.visit_variable(v),
-        }
-    }
-
     /// The primary function of the [Interpreter]: evaluates all statements
-    pub fn eval_all(&mut self, statements: &[Statement]) -> Result<(), Error> {
+    pub fn eval(&mut self, statements: &[Statement]) -> Result<()> {
         for statement in statements {
-            let expr = match &statement.stmt {
-                Stmt::Expression(expr) => expr,
-                Stmt::Print(expr) => expr,
-                Stmt::Variable(_v) => todo!(),
-            };
-            let result = match &expr.expr {
-                Expr::Binary(b) => self.visit_binary(b),
-                Expr::Grouping(g) => self.visit_grouping(g),
-                Expr::Literal(l) => self.visit_literal(l),
-                Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
-                Expr::Unary(u) => self.visit_unary(u),
-                Expr::Variable(_v) => todo!(),
-            }?;
-
-            if let Stmt::Print(_expr) = &statement.stmt {
-                println!("{:?}", result)
-            }
+            self.visit_statement(statement)?;
         }
 
         Ok(())
@@ -63,7 +49,7 @@ impl Interpreter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
             Expr::Unary(u) => self.visit_unary(u),
-            Expr::Variable(_v) => todo!(),
+            Expr::VariableUsage(v) => self.visit_variable_usage(v),
         }
     }
 
@@ -126,6 +112,7 @@ impl Interpreter {
     }
 
     fn visit_grouping(&mut self, g: &Grouping) -> Result<Object> {
+        // Ignore the grouping; evaluate inner expression
         self.eval_expr(&g.expression)
     }
 
@@ -149,6 +136,18 @@ impl Interpreter {
         };
         Ok(result)
     }
+
+    fn eval_variable_assignment(&mut self, v: &Variable) -> Result<Object> {
+        if let Some(initializer) = &v.initializer {
+            let value = self.eval_expr(&initializer.expr)?;
+            self.environment.define(&v.name, value.clone());
+            Ok(value)
+        } else {
+            let value = Object::Nothing;
+            self.environment.define(&v.name, value.clone());
+            Ok(value)
+        }
+    }
 }
 
 // TODO: does this make any sense whatsoever?
@@ -162,6 +161,8 @@ pub enum Object {
     Text(String),
     /// Boolean value
     Boolean(bool),
+    /// Empty value
+    Nothing,
 }
 
 impl Object {
@@ -190,24 +191,41 @@ impl Object {
     }
 }
 
-impl Visitor<Object> for Interpreter {
-    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
-        let expr = expression.expr.clone();
-        match &expr {
-            Expr::Binary(b) => self.visit_binary(b),
-            Expr::Grouping(g) => self.visit_grouping(g),
-            Expr::Literal(l) => self.visit_literal(l),
-            Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
-            Expr::Unary(u) => self.visit_unary(u),
-            Expr::Variable(_v) => todo!(),
+impl Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Object::Number(val) => write!(f, "{val}"),
+            Object::Text(val) => write!(f, "{val}"),
+            Object::Boolean(val) => write!(f, "{val}"),
+            Object::Nothing => write!(f, "Nothing"),
         }
     }
+}
 
-    fn visit_statement(&mut self, _statement: &Statement) -> Result<Object> {
-        todo!()
+impl Visitor<Object> for Interpreter {
+    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
+        self.eval_expr(&expression.expr)
     }
 
-    fn visit_variable(&mut self, _variable: &crate::parsing::variable::Variable) -> Result<Object> {
-        todo!()
+    fn visit_statement(&mut self, statement: &Statement) -> Result<Object> {
+        let expr = match &statement.stmt {
+            Stmt::Expression(expr) => expr,
+            Stmt::Print(expr) => expr,
+            Stmt::VariableDefinition(v) => {
+                // TODO: what to do here?
+                self.eval_variable_assignment(v)?;
+                return Ok(Object::Nothing);
+            }
+        };
+        let result = self.eval_expr(&expr.expr)?;
+        if let Stmt::Print(_expr) = &statement.stmt {
+            println!("{}", result)
+        };
+
+        Ok(result)
+    }
+
+    fn visit_variable_usage(&mut self, name: &str) -> Result<Object> {
+        self.environment.get(name)
     }
 }
