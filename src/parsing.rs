@@ -44,6 +44,8 @@ pub enum ParseError {
         String,
         #[label = "Expected assignment operator :=, found token {0}"] SourceSpan,
     ),
+    #[diagnostic(help("Use the := assignment operator instead of ="))]
+    ExpectedWalrus(#[label = "Expected assignment operator `:=`, found `=`"] SourceSpan),
     OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
     MissingSemicolon(#[label = "Expected ; after statement"] SourceSpan),
 }
@@ -128,7 +130,7 @@ pub fn var_declaration(
         match next.tokentype() {
             Bool => kind = VarType::Bool,
             Int => kind = VarType::Int,
-            Text(_) => kind = VarType::Text,
+            RawToken::String => kind = VarType::Text,
             _ => {
                 return Err(ParseError::ExpectedTypeAnnotation(
                     format!("{:?}", next.token),
@@ -165,6 +167,9 @@ pub fn var_declaration(
                 None,
                 StartEndSpan::new(var.span.start, next.span.end - 1),
             ))));
+        } else if matches!(next.tokentype(), Equal) {
+            // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
+            return Err(ParseError::ExpectedWalrus((next.span).into()));
         } else {
             return Err(ParseError::MissingSemicolon(
                 StartEndSpan::new(var.span.start, next.span.end - 1).into(),

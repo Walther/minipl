@@ -39,6 +39,24 @@ mod valid {
         let mut interpreter = Interpreter::new();
         interpreter.eval(&parsed).unwrap();
     }
+
+    #[test]
+    fn var_bool() {
+        let source = include_str!("sources/valid/var_bool.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn var_string() {
+        let source = include_str!("sources/valid/var_string.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
 }
 
 #[cfg(test)]

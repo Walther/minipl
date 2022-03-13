@@ -1,2 +1,2 @@
-print a;
-var a = "too late!";
+//print a;
+var a: string := "too late!";
