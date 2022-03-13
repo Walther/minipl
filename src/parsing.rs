@@ -44,7 +44,7 @@ pub enum ParseError {
         String,
         #[label = "Expected assignment operator :=, found token {0}"] SourceSpan,
     ),
-    #[diagnostic(help("Use the := assignment operator instead of ="))]
+    #[diagnostic(help("Use the assignment operator := instead of = for declaring a variable"))]
     ExpectedWalrus(#[label = "Expected assignment operator `:=`, found `=`"] SourceSpan),
     OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
     MissingSemicolon(#[label = "Expected ; after statement"] SourceSpan),
