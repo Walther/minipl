@@ -1,6 +1,6 @@
 use crate::{
-    parsing::{environment::Environment, statement::Statement, variable::Variable},
-    runtime::object::Object,
+    parsing::{Statement, Variable},
+    runtime::{Environment, Object},
     tokens::RawToken::{Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True},
 };
 

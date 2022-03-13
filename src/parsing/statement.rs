@@ -1,6 +1,5 @@
+use crate::parsing::{Expression, Variable};
 use crate::span::StartEndSpan;
-
-use super::{expression::Expression, variable::Variable};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {

@@ -5,11 +5,11 @@ use std::iter::Peekable;
 use thiserror::Error;
 
 pub mod expression;
-use expression::*;
+pub use expression::*;
 pub mod statement;
-use statement::*;
-pub mod environment;
+pub use statement::*;
 pub mod variable;
+pub use variable::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
@@ -17,8 +17,6 @@ use crate::tokens::RawToken::{
     Plus, Print, Semicolon, Slash, Star, Text, True, Var,
 };
 use crate::tokens::Token;
-
-use self::variable::{VarType, Variable};
 
 #[derive(Error, Debug, Diagnostic)]
 #[error("Parse error")]

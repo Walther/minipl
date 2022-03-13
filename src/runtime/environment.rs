@@ -10,10 +10,12 @@ pub struct Environment {
 }
 
 impl Environment {
+    /// Defines a variable with a given name and value into the [Environment]
     pub fn define(&mut self, name: &str, value: Object) {
         self.values.insert(name.to_owned(), value);
     }
 
+    /// Gets the value of the variable with the given name from the [Environment]
     pub fn get(&self, name: &str) -> Result<Object> {
         self.values
             .get(name)

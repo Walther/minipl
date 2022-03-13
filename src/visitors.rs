@@ -1,4 +1,4 @@
-use crate::parsing::{expression::*, statement::Statement};
+use crate::parsing::{Expression, Statement};
 
 /// Prettyprinter for the abstract syntax tree
 pub mod astprinter;
