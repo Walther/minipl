@@ -96,6 +96,7 @@ impl ASTPrinter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
             Expr::Unary(u) => self.visit_unary(u),
+            Expr::Variable(name) => Ok(name.to_string()),
         }
     }
 
@@ -108,7 +109,7 @@ impl ASTPrinter {
     }
 
     fn visit_grouping(&mut self, g: &Grouping) -> Result<String> {
-        let exprs = vec![Expr::Grouping(g.clone())].into_iter();
+        let exprs = vec![*g.expression.clone()].into_iter();
         self.nest_level += 1;
         let string = self.parenthesize_exprs("Group", exprs)?;
         self.nest_level -= 1;
@@ -147,15 +148,22 @@ impl Visitor<String> for ASTPrinter {
                 self.nest_level -= 1;
                 Ok(string)
             }
+            Stmt::Variable(v) => self.visit_variable(v),
         }
     }
 
     fn visit_variable(&mut self, variable: &Variable) -> Result<String> {
-        let exprs = vec![variable.initializer.expr.clone()].into_iter();
-        self.nest_level += 1;
-        let string =
-            self.parenthesize_exprs(format!("Variable {:?}", variable.name).as_str(), exprs)?;
-        self.nest_level -= 1;
-        Ok(string)
+        match &variable.initializer {
+            Some(expression) => {
+                let exprs = vec![expression.expr.clone()].into_iter();
+                self.nest_level += 1;
+                let string = self
+                    .parenthesize_exprs(format!("Variable {:?}", variable.name).as_str(), exprs)?;
+                self.nest_level -= 1;
+                Ok(string)
+            }
+            // TODO: correct indentation
+            None => Ok(format!("Variable {:?}", variable.name)),
+        }
     }
 }

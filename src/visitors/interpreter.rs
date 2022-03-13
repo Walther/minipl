@@ -35,6 +35,7 @@ impl Interpreter {
             let expr = match &statement.stmt {
                 Stmt::Expression(expr) => expr,
                 Stmt::Print(expr) => expr,
+                Stmt::Variable(_v) => todo!(),
             };
             let result = match &expr.expr {
                 Expr::Binary(b) => self.visit_binary(b),
@@ -42,6 +43,7 @@ impl Interpreter {
                 Expr::Literal(l) => self.visit_literal(l),
                 Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
                 Expr::Unary(u) => self.visit_unary(u),
+                Expr::Variable(_v) => todo!(),
             }?;
 
             if let Stmt::Print(_expr) = &statement.stmt {
@@ -61,6 +63,7 @@ impl Interpreter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
             Expr::Unary(u) => self.visit_unary(u),
+            Expr::Variable(_v) => todo!(),
         }
     }
 
@@ -196,6 +199,7 @@ impl Visitor<Object> for Interpreter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
             Expr::Unary(u) => self.visit_unary(u),
+            Expr::Variable(_v) => todo!(),
         }
     }
 

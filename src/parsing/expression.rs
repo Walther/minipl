@@ -9,6 +9,7 @@ pub enum Expr {
     Literal(Literal),
     Operator(Operator),
     Unary(Unary),
+    Variable(String), //TODO: does this make sense?
 }
 
 #[derive(Clone, Debug, PartialEq)]

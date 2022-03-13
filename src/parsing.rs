@@ -12,10 +12,12 @@ pub mod variable;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    self, Bang, Equal, False, Less, Minus, Number, ParenLeft, ParenRight, Plus, Print, Semicolon,
-    Slash, Star, Text, True,
+    self, Assign, Bang, Bool, Colon, Equal, False, Int, Less, Minus, Number, ParenLeft, ParenRight,
+    Plus, Print, Semicolon, Slash, Star, Text, True, Var,
 };
 use crate::tokens::Token;
+
+use self::variable::Variable;
 
 #[derive(Error, Debug, Diagnostic)]
 #[error("Parse error")]
@@ -25,9 +27,21 @@ pub enum ParseError {
         #[label = "Nothing to parse. Source contained ignorable tokens only."] SourceSpan,
     ),
     MissingParen(#[label = "Expected ( after this grouping"] SourceSpan),
-    ExpectedExpressionFoundToken(
+    ExpectedExpression(
         String,
         #[label = "Expected expression, found token {0}"] SourceSpan,
+    ),
+    ExpectedIdentifier(
+        String,
+        #[label = "Expected identifier, found token {0}"] SourceSpan,
+    ),
+    ExpectedTypeAnnotation(
+        String,
+        #[label = "Expected identifier, found token {0}"] SourceSpan,
+    ),
+    ExpectedAssignment(
+        String,
+        #[label = "Expected assignment operator :=, found token {0}"] SourceSpan,
     ),
     OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
     MissingSemicolon(#[label = "Expected ; after statement"] SourceSpan),
@@ -38,18 +52,121 @@ pub enum ParseError {
 
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
     let mut tokens = tokens.iter().cloned().peekable();
-    let mut statements: Vec<Statement> = Vec::new();
+    if tokens.len() == 0 {
+        return Err(ParseError::NothingToParse((0, 0).into()));
+    }
+
+    let mut declarations: Vec<Statement> = Vec::new();
     while let Some(token) = tokens.peek() {
         // TODO: better handling
         if token.tokentype() == RawToken::EOF {
             tokens.next();
             break;
         }
-        let stmt = statement(&mut tokens)?;
-        statements.push(stmt);
+        let declaration = declaration(&mut tokens)?;
+        declarations.push(declaration);
     }
 
-    Ok(statements)
+    Ok(declarations)
+}
+
+pub fn declaration(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Statement, ParseError> {
+    if let Some(next) = tokens.peek() {
+        let tokentype = next.tokentype();
+        if matches!(tokentype, Var) {
+            // parse a variable declaration
+            var_declaration(tokens)
+        } else {
+            // parse some other statement
+            statement(tokens)
+        }
+    } else {
+        Err(ParseError::OutOfTokens((0, 0).into()))
+    }
+}
+
+pub fn var_declaration(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Statement, ParseError> {
+    // consume the var token
+    let var = tokens
+        .next()
+        .ok_or_else(|| ParseError::OutOfTokens((0, 0).into()))?;
+
+    // get identifier
+    let identifier;
+    if let Some(next) = tokens.next() {
+        if let RawToken::Identifier(name) = &next.token {
+            identifier = name.clone();
+        } else {
+            return Err(ParseError::ExpectedIdentifier(
+                format!("{:?}", next.token),
+                next.span.into(),
+            ));
+        };
+    } else {
+        return Err(ParseError::OutOfTokens((0, 0).into()));
+    }
+
+    // require type annotation colon
+    if let Some(next) = tokens.next() {
+        if !matches!(next.tokentype(), Colon) {
+            return Err(ParseError::ExpectedTypeAnnotation(
+                format!("{:?}", next.token),
+                next.span.into(),
+            ));
+        }
+    } else {
+        return Err(ParseError::OutOfTokens((0, 0).into()));
+    }
+    // get type annotation
+    let mut _expected; // TODO: type checking!
+    if let Some(next) = tokens.next() {
+        match next.tokentype() {
+            Bool | Int | RawToken::String => _expected = next.tokentype(),
+            _ => {
+                return Err(ParseError::ExpectedTypeAnnotation(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ));
+            }
+        }
+    } else {
+        return Err(ParseError::OutOfTokens((0, 0).into()));
+    }
+
+    // optional assignment
+    // TODO: simplify
+    if let Some(next) = tokens.next() {
+        if matches!(next.tokentype(), Assign) {
+            // get initializer expression
+            let initializer = expression(tokens)?;
+            let span = StartEndSpan::new(var.span.start, initializer.span.end);
+            // get semicolon
+            if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
+                return Ok(Statement::new(Stmt::Variable(Variable::new(
+                    &identifier,
+                    Some(initializer),
+                    span,
+                ))));
+            } else {
+                return Err(ParseError::MissingSemicolon(span.into()));
+            };
+        } else if matches!(next.tokentype(), Semicolon) {
+            return Ok(Statement::new(Stmt::Variable(Variable::new(
+                &identifier,
+                None,
+                StartEndSpan::new(var.span.start, next.span.end - 1),
+            ))));
+        } else {
+            return Err(ParseError::MissingSemicolon(
+                StartEndSpan::new(var.span.start, next.span.end - 1).into(),
+            ));
+        };
+    }
+    Err(ParseError::OutOfTokens((0, 0).into()))
 }
 
 pub fn statement(
@@ -215,6 +332,10 @@ pub fn primary(
                 Expr::Literal(Literal::new(token.clone())),
                 token.span,
             )),
+            RawToken::Identifier(name) => {
+                // TODO: what should we do here?
+                Ok(Expression::new(Expr::Variable(name), token.span))
+            }
             ParenLeft => {
                 let expr = expression(tokens)?;
                 if let Some(_token) = tokens.next_if(|token| token.tokentype() == ParenRight) {
@@ -226,7 +347,7 @@ pub fn primary(
                     Err(ParseError::MissingParen(token.span.into()))
                 }
             }
-            _ => Err(ParseError::ExpectedExpressionFoundToken(
+            _ => Err(ParseError::ExpectedExpression(
                 format!("{:?}", token.token),
                 token.span.into(),
             )),

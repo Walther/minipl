@@ -1,11 +1,12 @@
 use crate::{span::StartEndSpan, visitors::Visitable};
 
-use super::expression::Expression;
+use super::{expression::Expression, variable::Variable};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Expression(Expression),
     Print(Expression),
+    Variable(Variable),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,6 +20,7 @@ impl Statement {
         let span = match &stmt {
             Stmt::Expression(e) => e.span,
             Stmt::Print(e) => e.span,
+            Stmt::Variable(v) => v.span,
         };
         Self { stmt, span }
     }
