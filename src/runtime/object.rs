@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use miette::{miette, Error, Result};
+use miette::{miette, Result};
 
 use crate::{
     parsing::{
@@ -25,7 +25,7 @@ pub enum Object {
 
 impl Object {
     /// Fallible cast of an [Object] to an [i64].
-    pub fn as_numeric(&self) -> Result<i64, Error> {
+    pub fn as_numeric(&self) -> Result<i64> {
         match self {
             Object::Number(n) => Ok(*n),
             _ => Err(miette!("Expected a numeric value, got: {:?}", self)),
@@ -33,7 +33,7 @@ impl Object {
     }
 
     /// Fallible cast of an [Object] to a [bool].
-    pub fn as_bool(&self) -> Result<bool, Error> {
+    pub fn as_bool(&self) -> Result<bool> {
         match self {
             Object::Boolean(b) => Ok(*b),
             _ => Err(miette!("Expected a boolean value, got: {:?}", self)),
@@ -41,7 +41,7 @@ impl Object {
     }
 
     /// Fallible cast of an [Object] to a [String].
-    pub fn as_text(&self) -> Result<String, Error> {
+    pub fn as_text(&self) -> Result<String> {
         match self {
             Object::Text(s) => Ok(s.to_string()),
             _ => Err(miette!("Expected a text value, got: {:?}", self)),

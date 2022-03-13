@@ -3,7 +3,7 @@ use std::{
     str::Chars,
 };
 
-use miette::{miette, Error};
+use miette::{miette, Result};
 use tracing::debug;
 
 use crate::tokens::Token;
@@ -29,7 +29,7 @@ use whitespace::scan_whitespace;
 /// # Errors
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
 /// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
-pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
+pub fn scan(input: &str) -> Result<Vec<Token>> {
     // Use the verbose version
     let mut tokens = scan_verbose(input)?;
     // Then remove ignorables
@@ -38,7 +38,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>, Error> {
 }
 
 /// Alternative for [scan], but does not delete ignorable tokens
-pub fn scan_verbose(input: &str) -> Result<Vec<Token>, Error> {
+pub fn scan_verbose(input: &str) -> Result<Vec<Token>> {
     let mut tokens: Vec<Token> = Vec::new();
     let length = input.len();
     let mut iter: Peekable<Enumerate<Chars>> = input.chars().enumerate().peekable();
@@ -58,7 +58,7 @@ pub fn scan_verbose(input: &str) -> Result<Vec<Token>, Error> {
 /// # Errors
 /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
 /// Any parse errors for the source code will be returned as [Token]s with type [`crate::tokens::RawToken::Error`] in order to recover error locations for use in error reporting for the user.
-pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token, Error> {
+pub fn scan_token(iter: &mut Peekable<Enumerate<Chars>>) -> Result<Token> {
     let &(start, char) = match iter.peek() {
         Some(it) => it,
         None => return Err(miette!("Tried to scan a token with no characters left")),
