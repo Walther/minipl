@@ -1,7 +1,7 @@
 use miette::{miette, Result};
 use std::collections::HashMap;
 
-use crate::visitors::interpreter::Object;
+use crate::runtime::object::Object;
 
 /// Environment is a scoping storage for variables
 #[derive(Debug, Default, Clone)]

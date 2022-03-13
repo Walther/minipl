@@ -11,14 +11,22 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
+// High-Level stuff
+
 /// The lexing for the Mini-PL language
 pub mod lexing;
 /// The parsing for the Mini-PL language
 pub mod parsing;
 /// The tokens of the Mini-PL language
 pub mod tokens;
+
+// Plumbing
+
 /// The visitors for the Mini-PL language
 pub mod visitors;
+
+/// The runtime features of Mini-PL language
+pub mod runtime;
 
 /// Internal span helper
 pub mod span;
