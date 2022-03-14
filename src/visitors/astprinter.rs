@@ -87,7 +87,7 @@ impl ASTPrinter {
             Expr::Literal(l) => self.visit_literal(l),
             Expr::Logical(l) => self.visit_logical(l),
             Expr::Unary(u) => self.visit_unary(u),
-            Expr::VariableUsage(name) => self.visit_variable_usage(name),
+            Expr::VariableUsage(name) => Ok(format!("Variable usage, name: {name}")),
         }
     }
 
@@ -184,9 +184,5 @@ impl Visitor<String> for ASTPrinter {
             }
             Stmt::VariableDefinition(v) => self.visit_variable_definition(v),
         }
-    }
-
-    fn visit_variable_usage(&mut self, name: &str) -> Result<String> {
-        Ok(format!("Variable usage, name: {name}"))
     }
 }

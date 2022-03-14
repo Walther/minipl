@@ -148,6 +148,10 @@ impl Interpreter {
         Ok(result)
     }
 
+    fn visit_variable_usage(&self, name: &str) -> Result<Object> {
+        self.environment.get(name)
+    }
+
     /// Evaluates a variable assignment. Has side effects: stores the variable in the current interpreter's `environment`.
     pub fn visit_assign(&mut self, a: &Assign) -> Result<Object> {
         let value = self.eval_expr(&a.value)?;

@@ -82,8 +82,4 @@ impl Visitor<Object> for Interpreter {
 
         Ok(result)
     }
-
-    fn visit_variable_usage(&mut self, name: &str) -> Result<Object> {
-        self.environment.get(name)
-    }
 }

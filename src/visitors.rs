@@ -16,6 +16,4 @@ pub trait Visitor<T> {
     fn visit_expression(&mut self, expression: &Expression) -> Result<T>;
     /// Statements
     fn visit_statement(&mut self, statement: &Statement) -> Result<T>;
-    /// Variables
-    fn visit_variable_usage(&mut self, name: &str) -> Result<T>;
 }
