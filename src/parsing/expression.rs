@@ -4,10 +4,10 @@ use crate::{span::StartEndSpan, tokens::Token};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
+    Assign(Assign),
     Binary(Binary),
     Grouping(Grouping),
     Literal(Literal),
-    Operator(Operator),
     Unary(Unary),
     VariableUsage(String),
 }
@@ -21,6 +21,23 @@ pub struct Expression {
 impl Expression {
     pub fn new(expr: Expr, span: StartEndSpan) -> Self {
         Self { expr, span }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Assign {
+    pub name: String,
+    pub token: Token,
+    pub value: Box<Expr>,
+}
+
+impl Assign {
+    pub fn new(name: &str, token: Token, value: Expr) -> Self {
+        Self {
+            name: name.to_owned(),
+            token,
+            value: Box::new(value),
+        }
     }
 }
 
@@ -63,11 +80,6 @@ impl Literal {
     pub fn new(value: Token) -> Self {
         Self { value }
     }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Operator {
-    pub operator: Token,
 }
 
 #[derive(Clone, Debug, PartialEq)]

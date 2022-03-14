@@ -71,7 +71,7 @@ impl Visitor<Object> for Interpreter {
             Stmt::Print(expr) => expr,
             Stmt::VariableDefinition(v) => {
                 // TODO: what to do here?
-                self.eval_variable_assignment(v)?;
+                self.eval_variable_declaration(v)?;
                 return Ok(Object::Nothing);
             }
         };

@@ -34,6 +34,20 @@ impl Environment {
             .cloned()
             .ok_or_else(|| return miette!(format!("Undefined variable: {name}")))
     }
+
+    /// Assigns a new value to an existing variable in the [Environment].
+    pub fn assign(
+        &mut self,
+        name: &str,
+        value: Object,
+        span: StartEndSpan,
+    ) -> Result<Object, EnvironmentError> {
+        if !self.values.contains_key(name) {
+            return Err(EnvironmentError::AssignToUndeclared(span.into()));
+        }
+        self.values.insert(name.to_owned(), value.clone());
+        Ok(value)
+    }
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -46,4 +60,9 @@ pub enum EnvironmentError {
     ))]
     /// Attempted re-declaration of a variable. Each identifier may be declared once only
     ReDeclaration(#[label = "Attempted to re-declare existing variable name"] SourceSpan),
+    #[diagnostic(help("Use the keyword `var` to declare the variable"))]
+    /// Attempted to assign to an undeclared variable. All variables must be declared before use
+    AssignToUndeclared(
+        #[label = "Attempted to assign to a variable that has not been declared"] SourceSpan,
+    ),
 }

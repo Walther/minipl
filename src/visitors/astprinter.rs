@@ -1,4 +1,4 @@
-use miette::{miette, Result};
+use miette::Result;
 
 use crate::{
     parsing::{
@@ -81,13 +81,24 @@ impl ASTPrinter {
 
     fn visit_expr(&mut self, expr: &Expr) -> Result<String> {
         match &expr {
+            Expr::Assign(a) => self.visit_assign(a),
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
             Expr::Literal(l) => self.visit_literal(l),
-            Expr::Operator(_o) => Err(miette!("Attempted to print a bare `Operator`. We should not have those left at parsing stage.")),
             Expr::Unary(u) => self.visit_unary(u),
             Expr::VariableUsage(name) => self.visit_variable_usage(name),
         }
+    }
+
+    fn visit_assign(&mut self, a: &Assign) -> Result<String> {
+        let exprs = vec![*a.value.clone()].into_iter();
+        self.nest_level += 1;
+        let string = self.parenthesize_exprs(
+            format!("Assign into variable, name: {:?}", a.name).as_str(),
+            exprs,
+        )?;
+        self.nest_level -= 1;
+        Ok(string)
     }
 
     fn visit_binary(&mut self, b: &Binary) -> Result<String> {

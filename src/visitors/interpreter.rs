@@ -41,10 +41,10 @@ impl Interpreter {
     /// Internal helper function: evaluates a single [Expr], a raw metadata-less version of [Expression]
     pub fn eval_expr(&mut self, expr: &Expr) -> Result<Object> {
         match expr {
+            Expr::Assign(a) => self.visit_assign(a),
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
             Expr::Literal(l) => self.visit_literal(l),
-            Expr::Operator(_o) => panic!("Attempted to print a bare `Operator`. We should not have those left at parsing stage."),
             Expr::Unary(u) => self.visit_unary(u),
             Expr::VariableUsage(v) => self.visit_variable_usage(v),
         }
@@ -135,7 +135,19 @@ impl Interpreter {
     }
 
     /// Evaluates a variable assignment. Has side effects: stores the variable in the current interpreter's `environment`.
-    pub fn eval_variable_assignment(&mut self, v: &Variable) -> Result<Object> {
+    pub fn visit_assign(&mut self, a: &Assign) -> Result<Object> {
+        let value = self.eval_expr(&a.value)?;
+        match self.environment.assign(&a.name, value, a.token.span) {
+            Ok(o) => Ok(o),
+            Err(_e) => {
+                // TODO: proper bubbling up of EnvironmentError
+                return Err(miette!("Failed to assign variable: {:?}", a.name));
+            }
+        }
+    }
+
+    /// Evaluates a variable declaration i.e. the initial definition of a variable. Has side effects: stores the variable in the current interpreter's `environment`.
+    pub fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object> {
         if let Some(initializer) = &v.initializer {
             let value = self.eval_expr(&initializer.expr)?;
             self.environment.define(&v.name, value.clone(), v.span)?;

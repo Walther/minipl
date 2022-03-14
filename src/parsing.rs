@@ -42,6 +42,11 @@ pub enum ParseError {
         String,
         #[label = "Expected assignment operator :=, found token {0}"] SourceSpan,
     ),
+    #[diagnostic(help("Usage: variable_name := new_value"))]
+    AssignToNonVariable(
+        String,
+        #[label = "Expected assignment to variable, found token {0}"] SourceSpan,
+    ),
     #[diagnostic(help("Use the assignment operator := instead of = for declaring a variable"))]
     ExpectedWalrus(#[label = "Expected assignment operator `:=`, found `=`"] SourceSpan),
     OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
@@ -219,17 +224,37 @@ pub fn epxr_statement(
 pub fn expression(
     tokens: &mut Peekable<impl Iterator<Item = Token>>,
 ) -> Result<Expression, ParseError> {
-    equality(tokens)
+    assignment(tokens)
 }
 
-pub fn equality(
+pub fn assignment(
     tokens: &mut Peekable<impl Iterator<Item = Token>>,
 ) -> Result<Expression, ParseError> {
     let mut expr = comparison(tokens)?;
     let spanstart = expr.span.start;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
-        if matches!(tokentype, Equal) {
+        if matches!(tokentype, Assign) {
+            let assign = next.clone();
+            tokens.next();
+            let right = comparison(tokens)?;
+            // TODO: better name getter
+            let name = match expr.expr {
+                Expr::VariableUsage(s) => s,
+                _ => {
+                    return Err(ParseError::AssignToNonVariable(
+                        format!("{:?}", expr.expr),
+                        expr.span.into(),
+                    ))
+                }
+            };
+            expr = Expression::new(
+                Expr::Assign(crate::parsing::expression::Assign::new(
+                    &name, assign, right.expr,
+                )),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
+        } else if matches!(tokentype, Equal) {
             let operator = next.clone();
             tokens.next();
             let right = comparison(tokens)?;

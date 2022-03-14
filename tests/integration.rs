@@ -104,4 +104,12 @@ mod invalid {
         let result = parse(tokens);
         assert!(matches!(result, Err(ParseError::ExpectedWalrus(_))));
     }
+
+    #[test]
+    fn assign_to_nonvariable() {
+        let source = include_str!("sources/invalid/assign_to_nonvariable.minipl");
+        let tokens = scan(source).unwrap();
+        let result = parse(tokens);
+        assert!(matches!(result, Err(ParseError::AssignToNonVariable(_, _))));
+    }
 }
