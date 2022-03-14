@@ -37,14 +37,14 @@ mod tests {
     use crate::{lexing::*, span::StartEndSpan};
     #[test]
     fn comment_empty() {
-        let token = &scan("//\n").unwrap()[0];
+        let token = &scan_verbose("//\n").unwrap()[0];
         let expected = Token::new(Comment, StartEndSpan::new(0, 2));
         assert_eq!(token, &expected);
     }
 
     #[test]
     fn comment_singleline() {
-        let token = &scan("// I am a comment\n").unwrap()[0];
+        let token = &scan_verbose("// I am a comment\n").unwrap()[0];
         let expected = Token::new(Comment, StartEndSpan::new(0, 17));
         assert_eq!(token, &expected);
     }

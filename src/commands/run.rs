@@ -13,7 +13,7 @@ use tracing::info;
 pub fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
-    let mut tokens = scan(&source)?;
+    let tokens = scan(&source)?;
     let mut colors = ColorGenerator::new();
 
     // 2. Error reporting for lexing
@@ -41,14 +41,6 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     }
 
     // 3. Parsing
-    // remove ignorables
-    tokens.retain(|token| {
-        !matches!(
-            token.token,
-            RawToken::Comment | RawToken::Error(_) | RawToken::Whitespace | RawToken::EOF
-        )
-    });
-
     if tokens.is_empty() {
         info!("Nothing to execute. Source contained ignorable tokens only.");
         return Ok(());

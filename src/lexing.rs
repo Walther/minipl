@@ -33,7 +33,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>> {
     // Use the verbose version
     let mut tokens = scan_verbose(input)?;
     // Then remove ignorables
-    tokens.retain(|token| !matches!(token.token, Whitespace));
+    tokens.retain(|token| !matches!(token.token, Whitespace | Comment));
     Ok(tokens)
 }
 

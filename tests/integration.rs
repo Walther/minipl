@@ -5,8 +5,55 @@ mod valid {
     use minipl::visitors::Interpreter;
 
     #[test]
+    fn empty() {
+        let source = include_str!("sources/valid/empty.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn newline() {
+        let source = include_str!("sources/valid/newline.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn comment() {
+        let source = include_str!("sources/valid/comment.minipl");
+        let tokens = scan(source).unwrap();
+        dbg!(&tokens);
+        let parsed = parse(tokens);
+        dbg!(&parsed);
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed.unwrap()).unwrap();
+    }
+
+    #[test]
     fn helloworld() {
         let source = include_str!("sources/valid/helloworld.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn hello_less_world() {
+        let source = include_str!("sources/valid/hello_less_world.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
+
+    #[test]
+    fn hello_plus_world() {
+        let source = include_str!("sources/valid/hello_plus_world.minipl");
         let tokens = scan(source).unwrap();
         let parsed = parse(tokens).unwrap();
         let mut interpreter = Interpreter::new();
