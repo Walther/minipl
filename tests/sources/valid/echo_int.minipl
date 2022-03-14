@@ -1,0 +1,3 @@
+var echo: int;
+read echo;
+print echo;

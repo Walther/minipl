@@ -14,7 +14,7 @@ pub use variable::*;
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
     self, Assign, Bang, Bool, Colon, Equal, False, Int, Less, Minus, Number, ParenLeft, ParenRight,
-    Plus, Print, Semicolon, Slash, Star, Text, True, Var,
+    Plus, Print, Read, Semicolon, Slash, Star, Text, True, Var,
 };
 use crate::tokens::Token;
 
@@ -46,6 +46,11 @@ pub enum ParseError {
     AssignToNonVariable(
         String,
         #[label = "Expected assignment to variable, found token {0}"] SourceSpan,
+    ),
+    #[diagnostic(help("Usage: read variable_name"))]
+    ReadToNonVariable(
+        String,
+        #[label = "Expected read to variable, found token {0}"] SourceSpan,
     ),
     #[diagnostic(help("Use the assignment operator := instead of = for declaring a variable"))]
     ExpectedWalrus(#[label = "Expected assignment operator `:=`, found `=`"] SourceSpan),
@@ -154,29 +159,30 @@ pub fn var_declaration(
             let span = StartEndSpan::new(var.span.start, initializer.span.end);
             // get semicolon
             if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
-                return Ok(Statement::new(Stmt::VariableDefinition(Variable::new(
-                    &identifier,
-                    kind,
-                    Some(initializer),
+                return Ok(Statement::new(
+                    Stmt::VariableDefinition(Variable::new(
+                        &identifier,
+                        kind,
+                        Some(initializer),
+                        span,
+                    )),
                     span,
-                ))));
+                ));
             } else {
                 return Err(ParseError::MissingSemicolon(span.into()));
             };
         } else if matches!(next.tokentype(), Semicolon) {
-            return Ok(Statement::new(Stmt::VariableDefinition(Variable::new(
-                &identifier,
-                kind,
-                None,
-                StartEndSpan::new(var.span.start, next.span.end - 1),
-            ))));
+            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+            return Ok(Statement::new(
+                Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
+                span,
+            ));
         } else if matches!(next.tokentype(), Equal) {
             // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
             return Err(ParseError::ExpectedWalrus((next.span).into()));
         } else {
-            return Err(ParseError::MissingSemicolon(
-                StartEndSpan::new(var.span.start, next.span.end - 1).into(),
-            ));
+            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+            return Err(ParseError::MissingSemicolon(span.into()));
         };
     }
     Err(ParseError::OutOfTokens((0, 0).into()))
@@ -191,6 +197,10 @@ pub fn statement(
             // consume the print token
             tokens.next();
             print_statement(tokens)
+        } else if matches!(tokentype, Read) {
+            // consume the read token
+            tokens.next();
+            read_statement(tokens)
         } else {
             epxr_statement(tokens)
         }
@@ -204,9 +214,37 @@ pub fn print_statement(
 ) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
     if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
-        Ok(Statement::new(Stmt::Print(expr)))
+        Ok(Statement::new(Stmt::Print(expr.clone()), expr.span))
     } else {
         Err(ParseError::MissingSemicolon(expr.span.into()))
+    }
+}
+
+pub fn read_statement(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Statement, ParseError> {
+    if let Some(token) = tokens.next() {
+        let tokentype = token.tokentype();
+        let name;
+        let expr = match tokentype {
+            RawToken::Identifier(n) => {
+                name = n.clone();
+                Expression::new(Expr::VariableUsage(n), token.span)
+            }
+            _ => {
+                return Err(ParseError::ReadToNonVariable(
+                    format!("{:?}", token.token),
+                    token.span.into(),
+                ))
+            }
+        };
+        if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
+            Ok(Statement::new(Stmt::Read(name), token.span))
+        } else {
+            Err(ParseError::MissingSemicolon(expr.span.into()))
+        }
+    } else {
+        Err(ParseError::OutOfTokens((0, 0).into()))
     }
 }
 
@@ -215,7 +253,7 @@ pub fn epxr_statement(
 ) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
     if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
-        Ok(Statement::new(Stmt::Expression(expr)))
+        Ok(Statement::new(Stmt::Expression(expr.clone()), expr.span))
     } else {
         Err(ParseError::MissingSemicolon(expr.span.into()))
     }
@@ -433,10 +471,11 @@ mod tests {
         let one = Token::new(Number(1), StartEndSpan::new(0, 1));
         let semi = Token::new(Semicolon, StartEndSpan::new(1, 1));
         let parsed = parse(vec![one.clone(), semi]).unwrap();
-        let expected = Statement::new(Stmt::Expression(Expression::new(
-            Expr::Literal(Literal::new(one)),
-            StartEndSpan::new(0, 1),
-        )));
+        let span = StartEndSpan::new(0, 1);
+        let expected = Statement::new(
+            Stmt::Expression(Expression::new(Expr::Literal(Literal::new(one)), span)),
+            span,
+        );
         assert_eq!(parsed[0], expected);
     }
 
@@ -451,14 +490,17 @@ mod tests {
         let tokens = vec![one1.clone(), equal.clone(), one2.clone(), semi];
 
         let parsed = parse(tokens).unwrap();
-        let expected = Statement::new(Stmt::Expression(Expression::new(
-            Expr::Binary(Binary::new(
-                Expr::Literal(Literal::new(one1)),
-                equal,
-                Expr::Literal(Literal::new(one2)),
+        let expected = Statement::new(
+            Stmt::Expression(Expression::new(
+                Expr::Binary(Binary::new(
+                    Expr::Literal(Literal::new(one1)),
+                    equal,
+                    Expr::Literal(Literal::new(one2)),
+                )),
+                StartEndSpan::new(0, 3),
             )),
             StartEndSpan::new(0, 3),
-        )));
+        );
         assert_eq!(parsed[0], expected);
     }
 }

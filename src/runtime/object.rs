@@ -2,14 +2,6 @@ use std::fmt::Display;
 
 use miette::{miette, Result};
 
-use crate::{
-    parsing::{
-        expression::Expression,
-        statement::{Statement, Stmt},
-    },
-    visitors::{Interpreter, Visitor},
-};
-
 #[derive(Debug, Clone)]
 /// The main enum of the runtime values within the language interpretation process
 pub enum Object {
@@ -57,29 +49,5 @@ impl Display for Object {
             Object::Boolean(val) => write!(f, "{val}"),
             Object::Nothing => write!(f, "Nothing"),
         }
-    }
-}
-
-impl Visitor<Object> for Interpreter {
-    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
-        self.eval_expr(&expression.expr)
-    }
-
-    fn visit_statement(&mut self, statement: &Statement) -> Result<Object> {
-        let expr = match &statement.stmt {
-            Stmt::Expression(expr) => expr,
-            Stmt::Print(expr) => expr,
-            Stmt::VariableDefinition(v) => {
-                // TODO: what to do here?
-                self.eval_variable_declaration(v)?;
-                return Ok(Object::Nothing);
-            }
-        };
-        let result = self.eval_expr(&expr.expr)?;
-        if let Stmt::Print(_expr) = &statement.stmt {
-            println!("{}", result)
-        };
-
-        Ok(result)
     }
 }

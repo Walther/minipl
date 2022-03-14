@@ -5,6 +5,7 @@ use crate::span::StartEndSpan;
 pub enum Stmt {
     Expression(Expression),
     Print(Expression),
+    Read(String),
     VariableDefinition(Variable),
 }
 
@@ -15,12 +16,7 @@ pub struct Statement {
 }
 
 impl Statement {
-    pub fn new(stmt: Stmt) -> Self {
-        let span = match &stmt {
-            Stmt::Expression(e) => e.span,
-            Stmt::Print(e) => e.span,
-            Stmt::VariableDefinition(v) => v.span,
-        };
+    pub fn new(stmt: Stmt, span: StartEndSpan) -> Self {
         Self { stmt, span }
     }
 }

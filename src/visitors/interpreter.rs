@@ -1,5 +1,7 @@
+use std::io;
+
 use crate::{
-    parsing::{Statement, Variable},
+    parsing::{Statement, Stmt, VarType, Variable},
     runtime::{Environment, Object},
     tokens::RawToken::{
         And, Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True,
@@ -153,7 +155,7 @@ impl Interpreter {
     }
 
     /// Evaluates a variable assignment. Has side effects: stores the variable in the current interpreter's `environment`.
-    pub fn visit_assign(&mut self, a: &Assign) -> Result<Object> {
+    fn visit_assign(&mut self, a: &Assign) -> Result<Object> {
         let value = self.eval_expr(&a.value)?;
         match self.environment.assign(&a.name, value, a.token.span) {
             Ok(o) => Ok(o),
@@ -171,9 +173,58 @@ impl Interpreter {
             self.environment.define(&v.name, value.clone(), v.span)?;
             Ok(value)
         } else {
-            let value = Object::Nothing;
-            self.environment.define(&v.name, value.clone(), v.span)?;
-            Ok(value)
+            let default_value = match v.kind {
+                VarType::Bool => Object::Boolean(false),
+                VarType::Int => Object::Number(0),
+                VarType::Text => Object::Text("".to_owned()),
+            };
+            self.environment
+                .define(&v.name, default_value.clone(), v.span)?;
+            Ok(default_value)
         }
+    }
+}
+
+impl Visitor<Object> for Interpreter {
+    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
+        self.eval_expr(&expression.expr)
+    }
+
+    fn visit_statement(&mut self, statement: &Statement) -> Result<Object> {
+        let expr = match &statement.stmt {
+            Stmt::Expression(expr) => expr,
+            Stmt::Print(expr) => expr,
+            Stmt::Read(name) => {
+                // TODO: better input handling
+                // TODO: less hacky
+                let mut buffer = String::new();
+                let stdin = io::stdin();
+                stdin
+                    .read_line(&mut buffer)
+                    .map_err(|_| return miette!("Failed to read a variable from stdin"))?;
+                let old = self.environment.get(name)?;
+                let new = match old {
+                    Object::Number(_) => Object::Number(buffer.trim().parse().map_err(|_| {
+                        return miette!("Failed to parse the read variable into an int");
+                    })?),
+                    Object::Text(_) => Object::Text(buffer),
+                    Object::Boolean(_) => Object::Boolean(buffer.trim().parse().map_err(|_| {
+                        return miette!("Failed to parse the read variable into a boolean");
+                    })?),
+                    Object::Nothing => {
+                        return Err(miette!("Internal error, writing to a Nothing value"))
+                    }
+                };
+                let object = self.environment.assign(name, new, statement.span)?;
+                return Ok(object);
+            }
+            Stmt::VariableDefinition(v) => return self.eval_variable_declaration(v),
+        };
+        let result = self.eval_expr(&expr.expr)?;
+        if let Stmt::Print(_expr) = &statement.stmt {
+            println!("{}", result)
+        };
+
+        Ok(result)
     }
 }

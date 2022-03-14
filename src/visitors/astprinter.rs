@@ -182,6 +182,7 @@ impl Visitor<String> for ASTPrinter {
                 self.nest_level -= 1;
                 Ok(string)
             }
+            Stmt::Read(name) => Ok(format!("Read, into variable name: {name}")),
             Stmt::VariableDefinition(v) => self.visit_variable_definition(v),
         }
     }
