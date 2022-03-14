@@ -57,6 +57,15 @@ mod valid {
         let mut interpreter = Interpreter::new();
         interpreter.eval(&parsed).unwrap();
     }
+
+    #[test]
+    fn logical_and() {
+        let source = include_str!("sources/valid/logical_and.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
 }
 
 #[cfg(test)]

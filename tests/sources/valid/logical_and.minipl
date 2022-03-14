@@ -1,0 +1,3 @@
+print true & true;
+print true & true & true;
+print (true & false) & (true & false);

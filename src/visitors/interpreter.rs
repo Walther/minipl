@@ -1,7 +1,9 @@
 use crate::{
     parsing::{Statement, Variable},
     runtime::{Environment, Object},
-    tokens::RawToken::{Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True},
+    tokens::RawToken::{
+        And, Bang, Equal, False, Less, Minus, Number, Plus, Slash, Star, Text, True,
+    },
 };
 
 use super::Visitor;
@@ -45,6 +47,7 @@ impl Interpreter {
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
             Expr::Literal(l) => self.visit_literal(l),
+            Expr::Logical(l) => self.visit_logical(l),
             Expr::Unary(u) => self.visit_unary(u),
             Expr::VariableUsage(v) => self.visit_variable_usage(v),
         }
@@ -120,6 +123,17 @@ impl Interpreter {
             False => Object::Boolean(false),
             True => Object::Boolean(true),
             _ => return Err(miette!("Unexpected literal: {:?}", l.value.token)),
+        };
+        Ok(result)
+    }
+
+    fn visit_logical(&mut self, l: &Logical) -> Result<Object> {
+        let right = self.eval_expr(&l.right)?;
+        let left = self.eval_expr(&l.left)?;
+        let tokentype = l.operator.tokentype();
+        let result = match tokentype {
+            And => Object::Boolean(left.as_bool()? && right.as_bool()?),
+            _ => return Err(miette!("Unexpected logical operator: {:?}", l.operator)),
         };
         Ok(result)
     }

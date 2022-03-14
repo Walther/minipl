@@ -8,6 +8,7 @@ pub enum Expr {
     Binary(Binary),
     Grouping(Grouping),
     Literal(Literal),
+    Logical(Logical),
     Unary(Unary),
     VariableUsage(String),
 }
@@ -79,6 +80,23 @@ pub struct Literal {
 impl Literal {
     pub fn new(value: Token) -> Self {
         Self { value }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Logical {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
+}
+
+impl Logical {
+    pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
+        Self {
+            left: Box::new(left),
+            operator,
+            right: Box::new(right),
+        }
     }
 }
 

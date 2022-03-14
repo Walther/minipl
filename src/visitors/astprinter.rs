@@ -85,6 +85,7 @@ impl ASTPrinter {
             Expr::Binary(b) => self.visit_binary(b),
             Expr::Grouping(g) => self.visit_grouping(g),
             Expr::Literal(l) => self.visit_literal(l),
+            Expr::Logical(l) => self.visit_logical(l),
             Expr::Unary(u) => self.visit_unary(u),
             Expr::VariableUsage(name) => self.visit_variable_usage(name),
         }
@@ -120,6 +121,15 @@ impl ASTPrinter {
     fn visit_literal(&mut self, l: &Literal) -> Result<String> {
         self.nest_level += 1;
         let string = self.indented_print(&l.value.token);
+        self.nest_level -= 1;
+        Ok(string)
+    }
+
+    fn visit_logical(&mut self, l: &Logical) -> Result<String> {
+        let exprs = vec![*l.left.clone(), *l.right.clone()].into_iter();
+        self.nest_level += 1;
+        let string =
+            self.parenthesize_exprs(format!("Logical: {:?}", l.operator.token).as_str(), exprs)?;
         self.nest_level -= 1;
         Ok(string)
     }

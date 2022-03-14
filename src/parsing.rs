@@ -230,14 +230,15 @@ pub fn expression(
 pub fn assignment(
     tokens: &mut Peekable<impl Iterator<Item = Token>>,
 ) -> Result<Expression, ParseError> {
-    let mut expr = comparison(tokens)?;
+    let mut expr = and(tokens)?;
     let spanstart = expr.span.start;
     while let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
+        // Assignment
         if matches!(tokentype, Assign) {
             let assign = next.clone();
             tokens.next();
-            let right = comparison(tokens)?;
+            let right = and(tokens)?;
             // TODO: better name getter
             let name = match expr.expr {
                 Expr::VariableUsage(s) => s,
@@ -254,7 +255,41 @@ pub fn assignment(
                 )),
                 StartEndSpan::new(spanstart, right.span.end),
             );
-        } else if matches!(tokentype, Equal) {
+        } else {
+            break;
+        }
+    }
+    Ok(expr)
+}
+
+pub fn and(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expression, ParseError> {
+    let mut expr = equality(tokens)?;
+    let spanstart = expr.span.start;
+    while let Some(next) = tokens.peek() {
+        let tokentype = next.tokentype();
+        if matches!(tokentype, RawToken::And) {
+            let operator = next.clone();
+            tokens.next();
+            let right = comparison(tokens)?;
+            expr = Expression::new(
+                Expr::Logical(Logical::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
+        } else {
+            break;
+        }
+    }
+    Ok(expr)
+}
+
+pub fn equality(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Expression, ParseError> {
+    let mut expr = comparison(tokens)?;
+    let spanstart = expr.span.start;
+    while let Some(next) = tokens.peek() {
+        let tokentype = next.tokentype();
+        if matches!(tokentype, Equal) {
             let operator = next.clone();
             tokens.next();
             let right = comparison(tokens)?;
