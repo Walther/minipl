@@ -1,3 +1,4 @@
+print "give me a string value\n";
 var echo: string;
 read echo;
 print echo;

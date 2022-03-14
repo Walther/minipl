@@ -58,8 +58,15 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     let mut interpreter = Interpreter::default();
     match interpreter.eval(&statements) {
         // NOTE: we discard any returned values
-        Ok(_result) => Ok(()),
+        Ok(_result) => {
+            // Print an additional newline to clear the output line
+            println!();
+            // Return ok
+            Ok(())
+        }
         Err(err) => {
+            // Print an additional newline to clear the output line
+            println!();
             let report: miette::Report = err;
             Err(report.with_source_code(source))
         }

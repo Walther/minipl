@@ -1,3 +1,4 @@
+print "give me a boolean value\n";
 var echo: bool;
 read echo;
 print echo;

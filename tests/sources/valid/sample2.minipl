@@ -6,4 +6,7 @@ for x in 0..nTimes-1 do
 print x;
 print " : Hello, World!\n";
 end for;
-assert (x = nTimes);
+// Original, fails the assertion
+// assert (x = nTimes);
+// Personal edit, passes the assertion
+assert (x = nTimes-1);

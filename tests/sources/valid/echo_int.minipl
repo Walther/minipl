@@ -1,3 +1,4 @@
+print "give me an integer value\n";
 var echo: int;
 read echo;
 print echo;
