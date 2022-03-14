@@ -113,6 +113,15 @@ mod valid {
         let mut interpreter = Interpreter::new();
         interpreter.eval(&parsed).unwrap();
     }
+
+    #[test]
+    fn for_zero_to_ten_print() {
+        let source = include_str!("sources/valid/for_zero_to_ten_print.minipl");
+        let tokens = scan(source).unwrap();
+        let parsed = parse(tokens).unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.eval(&parsed).unwrap();
+    }
 }
 
 #[cfg(test)]

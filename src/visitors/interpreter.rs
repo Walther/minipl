@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Write};
 
 use crate::{
     parsing::{Statement, Stmt, VarType, Variable},
@@ -219,10 +219,42 @@ impl Visitor<Object> for Interpreter {
                 return Ok(object);
             }
             Stmt::VariableDefinition(v) => return self.eval_variable_declaration(v),
+            Stmt::Forloop(f) => {
+                let name = f.variable.clone();
+                // NOTE: "The for control variable behaves like a constant inside the loop: it cannot be assigned another value (before exiting the for statement)"
+                // This means we evaluate the start and end only once, based on the initial start..end declaration
+                let start = self.visit_expression(&f.left)?;
+                let start = match start.as_numeric() {
+                    Ok(num) => num,
+                    Err(_) => return Err(miette!("For loop start must be numeric")),
+                };
+                let end = self.visit_expression(&f.right)?;
+                let end = match end.as_numeric() {
+                    Ok(num) => num,
+                    Err(_) => return Err(miette!("For loop end must be numeric")),
+                };
+                if start > end {
+                    return Err(miette!("For loop end must be larger than start"));
+                }
+                for i in start..=end {
+                    match self.environment.assign(&name, Object::Number(i), f.span) {
+                        Ok(_) => (),
+                        Err(_) => return Err(miette!("Assignment error during for loop")),
+                    };
+                    for statement in &f.body {
+                        self.visit_statement(statement)?;
+                    }
+                }
+                return Ok(Object::Nothing);
+            }
         };
         let result = self.eval_expr(&expr.expr)?;
         if let Stmt::Print(_expr) = &statement.stmt {
-            println!("{}", result)
+            // NOTE: the course project spec is slightly unclear on whether a print statement should contain an implicit newline or not
+            print!("{}", result);
+            io::stdout()
+                .flush()
+                .map_err(|_| miette!("Runtime error: could not flush stdout after print"))?;
         };
 
         Ok(result)

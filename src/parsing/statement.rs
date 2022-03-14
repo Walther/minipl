@@ -1,9 +1,12 @@
 use crate::parsing::{Expression, Variable};
 use crate::span::StartEndSpan;
 
+use super::Forloop;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     Expression(Expression),
+    Forloop(Forloop),
     Print(Expression),
     Read(String),
     VariableDefinition(Variable),

@@ -10,11 +10,13 @@ pub mod statement;
 pub use statement::*;
 pub mod variable;
 pub use variable::*;
+pub mod forloop;
+pub use forloop::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    self, Assign, Bang, Bool, Colon, Equal, False, Int, Less, Minus, Number, ParenLeft, ParenRight,
-    Plus, Print, Read, Semicolon, Slash, Star, Text, True, Var,
+    self, Assign, Bang, Bool, Colon, End, Equal, False, For, Int, Less, Minus, Number, ParenLeft,
+    ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True, Var,
 };
 use crate::tokens::Token;
 
@@ -56,6 +58,31 @@ pub enum ParseError {
     ExpectedWalrus(#[label = "Expected assignment operator `:=`, found `=`"] SourceSpan),
     OutOfTokens(#[label = "Ran out of tokens while parsing"] SourceSpan),
     MissingSemicolon(#[label = "Expected ; after statement"] SourceSpan),
+    #[diagnostic(help("Usage: for x in a..b do \\n [body] \\n end for;"))]
+    ForMissingVariable(
+        String,
+        #[label = "Expected variable name, found token {0}"] SourceSpan,
+    ),
+    #[diagnostic(help("Usage: for x in a..b do \\n [body] \\n end for;"))]
+    ForMissingRange(
+        String,
+        #[label = "Expected range syntax `..`, found token {0}"] SourceSpan,
+    ),
+    #[diagnostic(help("Usage: for x in a..b do \\n [body] \\n end for;"))]
+    ForMissingIn(
+        String,
+        #[label = "Expected keyword `in`, found token {0}"] SourceSpan,
+    ),
+    #[diagnostic(help("Usage: for x in a..b do \\n [body] \\n end for;"))]
+    ForMissingDo(
+        String,
+        #[label = "Expected keyword `do`, found token {0}"] SourceSpan,
+    ),
+    #[diagnostic(help("Usage: for x in a..b do \\n [body] \\n end for;"))]
+    EndMissingFor(
+        String,
+        #[label = "Expected keyword `for`, found token {0}"] SourceSpan,
+    ),
 }
 
 // Unstable syntax
@@ -193,7 +220,9 @@ pub fn statement(
 ) -> Result<Statement, ParseError> {
     if let Some(next) = tokens.peek() {
         let tokentype = next.tokentype();
-        if matches!(tokentype, Print) {
+        if matches!(tokentype, For) {
+            for_statement(tokens)
+        } else if matches!(tokentype, Print) {
             // consume the print token
             tokens.next();
             print_statement(tokens)
@@ -207,6 +236,123 @@ pub fn statement(
     } else {
         Err(ParseError::NothingToParse((0, 0).into()))
     }
+}
+
+pub fn for_statement(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Statement, ParseError> {
+    // consume the for token // TODO: remove unwrap
+    let start = tokens.next().unwrap();
+    // variable name literal
+    let name;
+    if let Some(next) = tokens.next() {
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::Identifier(n) => name = n,
+            _ => {
+                return Err(ParseError::ForMissingVariable(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
+        };
+    } else {
+        return Err(ParseError::NothingToParse((0, 0).into()));
+    };
+    // in keyword
+    if let Some(next) = tokens.next() {
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::In => (),
+            _ => {
+                return Err(ParseError::ForMissingIn(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
+        };
+    } else {
+        return Err(ParseError::NothingToParse((0, 0).into()));
+    };
+    // left expr
+    let left = expression(tokens)?;
+    // range literal
+    if let Some(next) = tokens.next() {
+        let tokentype = next.tokentype();
+        match tokentype {
+            Range => (),
+            _ => {
+                return Err(ParseError::ForMissingRange(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
+        };
+    } else {
+        return Err(ParseError::NothingToParse((0, 0).into()));
+    };
+    // right expr
+    let right = expression(tokens)?;
+    // do keyword
+    if let Some(next) = tokens.next() {
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::Do => (),
+            _ => {
+                return Err(ParseError::ForMissingDo(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
+        };
+    } else {
+        return Err(ParseError::NothingToParse((0, 0).into()));
+    };
+    // loop body
+    let mut body = Vec::new();
+    while let Some(next) = tokens.peek() {
+        let tokentype = next.tokentype();
+        // Have we found the end?
+        if matches!(tokentype, End) {
+            // consume the end token
+            tokens.next();
+            // expect to find for token
+            if let Some(next) = tokens.next() {
+                let tokentype = next.tokentype();
+                match tokentype {
+                    For => {
+                        // expect to find semicolon
+                        if let Some(_token) =
+                            tokens.next_if(|token| matches!(token.tokentype(), Semicolon))
+                        {
+                            break;
+                        } else {
+                            return Err(ParseError::MissingSemicolon(next.span.into()));
+                        }
+                    }
+                    _ => {
+                        return Err(ParseError::EndMissingFor(
+                            format!("{:?}", next.token),
+                            next.span.into(),
+                        ))
+                    }
+                }
+            } else {
+                return Err(ParseError::NothingToParse((0, 0).into()));
+            }
+        } else {
+            // Otherwise, parse full statements into the loop body
+            let statement = statement(tokens)?;
+            body.push(statement);
+        }
+    }
+
+    let last = body.last().unwrap(); // TODO: remove unwrap
+    let span = StartEndSpan::new(start.span.start, last.span.end);
+    Ok(Statement::new(
+        Stmt::Forloop(Forloop::new(&name, left, right, body, span)),
+        span,
+    ))
 }
 
 pub fn print_statement(

@@ -1,11 +1,8 @@
 use miette::Result;
 
-use crate::{
-    parsing::{
-        statement::{Statement, Stmt},
-        variable::Variable,
-    },
-    tokens::RawToken,
+use crate::parsing::{
+    statement::{Statement, Stmt},
+    variable::Variable,
 };
 
 use super::Visitor;
@@ -64,7 +61,7 @@ impl ASTPrinter {
         Ok(string)
     }
 
-    fn indented_print(&mut self, value: &RawToken) -> String {
+    fn indented_print(&mut self, value: impl std::fmt::Debug) -> String {
         let mut string = String::new();
         // TODO: less hacky indent tree
         if self.nest_level > 0 {
@@ -184,6 +181,25 @@ impl Visitor<String> for ASTPrinter {
             }
             Stmt::Read(name) => Ok(format!("Read, into variable name: {name}")),
             Stmt::VariableDefinition(v) => self.visit_variable_definition(v),
+            Stmt::Forloop(f) => {
+                // TODO: better AST prettyprinting for for loops...
+                let start = self.visit_expression(&f.left)?;
+                let end = self.visit_expression(&f.right)?;
+                let loop_start = format!(
+                    "For loop start, variable name: {}, start: {:?}, end: {:?}",
+                    f.variable,
+                    start.trim(),
+                    end.trim()
+                );
+                let mut loop_body = String::new();
+                for statement in &f.body {
+                    let str = self.visit_statement(statement)?;
+                    loop_body.push_str(&str);
+                    loop_body.push('\n');
+                }
+                let loop_end = "For loop end";
+                Ok(format!("{loop_start} {loop_body} {loop_end}"))
+            }
         }
     }
 }
