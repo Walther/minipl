@@ -5,6 +5,7 @@ use super::Forloop;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
+    Assert(Expression),
     Expression(Expression),
     Forloop(Forloop),
     Print(Expression),

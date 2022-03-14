@@ -192,6 +192,19 @@ impl Visitor<Object> for Interpreter {
 
     fn visit_statement(&mut self, statement: &Statement) -> Result<Object> {
         let expr = match &statement.stmt {
+            Stmt::Assert(e) => {
+                let result = self.visit_expression(e)?;
+                match result.as_bool() {
+                    Ok(bool) => {
+                        if !bool {
+                            return Err(miette!("Assertion failed: {:?}", e.expr));
+                        } else {
+                            return Ok(Object::Nothing);
+                        }
+                    }
+                    Err(_) => return Err(miette!("Assert statement must evaluate to a boolean")),
+                };
+            }
             Stmt::Expression(expr) => expr,
             Stmt::Print(expr) => expr,
             Stmt::Read(name) => {

@@ -171,6 +171,7 @@ impl Visitor<String> for ASTPrinter {
 
     fn visit_statement(&mut self, statement: &Statement) -> Result<String> {
         match &statement.stmt {
+            Stmt::Assert(e) => Ok(format!("Assert: {}", self.visit_expression(e)?)),
             Stmt::Expression(e) => self.visit_expression(e),
             Stmt::Print(e) => {
                 let exprs = vec![e.expr.clone()].into_iter();

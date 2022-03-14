@@ -15,8 +15,8 @@ pub use forloop::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    self, Assign, Bang, Bool, Colon, End, Equal, False, For, Int, Less, Minus, Number, ParenLeft,
-    ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True, Var,
+    self, Assert, Assign, Bang, Bool, Colon, End, Equal, False, For, Int, Less, Minus, Number,
+    ParenLeft, ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True, Var,
 };
 use crate::tokens::Token;
 
@@ -222,6 +222,10 @@ pub fn statement(
         let tokentype = next.tokentype();
         if matches!(tokentype, For) {
             for_statement(tokens)
+        } else if matches!(tokentype, Assert) {
+            // consume the assert token
+            tokens.next();
+            assert_statement(tokens)
         } else if matches!(tokentype, Print) {
             // consume the print token
             tokens.next();
@@ -235,6 +239,17 @@ pub fn statement(
         }
     } else {
         Err(ParseError::NothingToParse((0, 0).into()))
+    }
+}
+
+pub fn assert_statement(
+    tokens: &mut Peekable<impl Iterator<Item = Token>>,
+) -> Result<Statement, ParseError> {
+    let expr = expression(tokens)?;
+    if let Some(_token) = tokens.next_if(|token| matches!(token.tokentype(), Semicolon)) {
+        Ok(Statement::new(Stmt::Assert(expr.clone()), expr.span))
+    } else {
+        Err(ParseError::MissingSemicolon(expr.span.into()))
     }
 }
 
