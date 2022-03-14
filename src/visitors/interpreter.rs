@@ -138,11 +138,11 @@ impl Interpreter {
     pub fn eval_variable_assignment(&mut self, v: &Variable) -> Result<Object> {
         if let Some(initializer) = &v.initializer {
             let value = self.eval_expr(&initializer.expr)?;
-            self.environment.define(&v.name, value.clone());
+            self.environment.define(&v.name, value.clone(), v.span)?;
             Ok(value)
         } else {
             let value = Object::Nothing;
-            self.environment.define(&v.name, value.clone());
+            self.environment.define(&v.name, value.clone(), v.span)?;
             Ok(value)
         }
     }
