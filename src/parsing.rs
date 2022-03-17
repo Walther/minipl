@@ -75,13 +75,15 @@ impl Parser {
         }
     }
 
+    /// Internal helper: if the next token matches the given type, returns it and consumes it from the iterator. If the next one does not match, does not consume it and returns None
+    fn next_if_tokentype(&mut self, tokentype: RawToken) -> Option<Token> {
+        self.tokens.next_if(|token| token.tokentype() == tokentype)
+    }
+
     /// Internal helper: expect the next token to be a Semicolon, and consume it, or return a MissingSemicolon error with the given span
     fn expect_semicolon(&mut self, span: StartEndSpan) -> Result<(), ParseError> {
         // get semicolon
-        if let Some(_token) = self
-            .tokens
-            .next_if(|token| matches!(token.tokentype(), Semicolon))
-        {
+        if self.next_if_tokentype(Semicolon).is_some() {
             return Ok(());
         }
         // otherwise, missing semicolon
@@ -478,20 +480,17 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expression, ParseError> {
-        if let Some(next) = self.tokens.peek() {
-            let spanstart = next.span.start;
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Bang | Minus) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.unary()?;
-                return Ok(Expression::new(
-                    Expr::Unary(Unary::new(operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                ));
-            }
-        } else {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+        let next = self.maybe_peek()?;
+        let spanstart = next.span.start;
+        let tokentype = next.tokentype();
+        if matches!(tokentype, Bang | Minus) {
+            let operator = next.clone();
+            self.tokens.next();
+            let right = self.unary()?;
+            return Ok(Expression::new(
+                Expr::Unary(Unary::new(operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            ));
         }
 
         self.primary()
@@ -509,7 +508,7 @@ impl Parser {
             Identifier(name) => Ok(Expression::new(Expr::VariableUsage(name), token.span)),
             ParenLeft => {
                 let expr = self.expression()?;
-                if let Some(_token) = self.tokens.next_if(|token| token.tokentype() == ParenRight) {
+                if let Some(_token) = self.next_if_tokentype(ParenRight) {
                     Ok(Expression::new(
                         Expr::Grouping(Grouping::new(expr.expr)),
                         expr.span,
