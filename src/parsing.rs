@@ -12,8 +12,9 @@ pub use forloop::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    self, Assert, Assign, Bang, Bool, Colon, End, Equal, False, For, Int, Less, Minus, Number,
-    ParenLeft, ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True, Var,
+    self, Assert, Assign, Bang, Bool, Colon, End, Equal, False, For, Identifier, Int, Less, Minus,
+    Number, ParenLeft, ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True,
+    Var,
 };
 use crate::tokens::Token;
 mod parse_error;
@@ -104,7 +105,7 @@ impl Parser {
 
         // get identifier
         let next = self.maybe_next()?;
-        let identifier = if let RawToken::Identifier(name) = &next.token {
+        let identifier = if let Identifier(name) = &next.token {
             name.clone()
         } else {
             return Err(ParseError::ExpectedIdentifier(
@@ -208,7 +209,7 @@ impl Parser {
 
         let tokentype = next.tokentype();
         match tokentype {
-            RawToken::Identifier(n) => name = n,
+            Identifier(n) => name = n,
             _ => {
                 return Err(ParseError::ForMissingVariable(
                     format!("{:?}", next.token),
@@ -318,7 +319,7 @@ impl Parser {
         let tokentype = token.tokentype();
         let name;
         let expr = match tokentype {
-            RawToken::Identifier(n) => {
+            Identifier(n) => {
                 name = n.clone();
                 Expression::new(Expr::VariableUsage(n), span)
             }
@@ -497,19 +498,15 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expression, ParseError> {
-        // At a terminal value, we need to always consume the token ?
-        // TODO: verify
+        // At a terminal value, we need to always consume the token
         let token = self.maybe_next()?;
-
         let tokentype = token.tokentype();
         match tokentype {
             False | True | Number(_) | Text(_) => Ok(Expression::new(
                 Expr::Literal(Literal::new(token.clone())),
                 token.span,
             )),
-            RawToken::Identifier(name) => {
-                Ok(Expression::new(Expr::VariableUsage(name), token.span))
-            }
+            Identifier(name) => Ok(Expression::new(Expr::VariableUsage(name), token.span)),
             ParenLeft => {
                 let expr = self.expression()?;
                 if let Some(_token) = self.tokens.next_if(|token| token.tokentype() == ParenRight) {
