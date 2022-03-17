@@ -90,12 +90,11 @@ impl Parser {
     fn declaration(&mut self) -> Result<Statement, ParseError> {
         let next = self.maybe_peek()?;
         let tokentype = next.tokentype();
-        if matches!(tokentype, Var) {
+        match tokentype {
             // parse a variable declaration
-            self.var_declaration()
-        } else {
+            Var => self.var_declaration(),
             // parse some other statement
-            self.statement()
+            _ => self.statement(),
         }
     }
 
@@ -178,34 +177,25 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
-        if let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, For) {
-                self.for_statement()
-            } else if matches!(tokentype, Assert) {
-                // consume the assert token
-                self.tokens.next();
-                self.assert_statement()
-            } else if matches!(tokentype, Print) {
-                // consume the print token
-                self.tokens.next();
-                self.print_statement()
-            } else if matches!(tokentype, Read) {
-                // consume the read token
-                self.tokens.next();
-                self.read_statement()
-            } else {
-                self.epxr_statement()
-            }
-        } else {
-            Err(ParseError::NothingToParse((0, 0).into()))
+        let next = self.maybe_peek()?;
+        let tokentype = next.tokentype();
+
+        match tokentype {
+            For => self.for_statement(),
+            Assert => self.assert_statement(),
+            Print => self.print_statement(),
+            Read => self.read_statement(),
+            _ => self.epxr_statement(),
         }
     }
 
     fn assert_statement(&mut self) -> Result<Statement, ParseError> {
+        // consume the assert token
+        let start = self.maybe_next()?;
         let expr = self.expression()?;
-        self.expect_semicolon(expr.span)?;
-        Ok(Statement::new(Stmt::Assert(expr.clone()), expr.span))
+        let span = StartEndSpan::new(start.span.start, expr.span.end);
+        self.expect_semicolon(span)?;
+        Ok(Statement::new(Stmt::Assert(expr), span))
     }
 
     fn for_statement(&mut self) -> Result<Statement, ParseError> {
@@ -310,30 +300,37 @@ impl Parser {
     }
 
     fn print_statement(&mut self) -> Result<Statement, ParseError> {
+        // consume the print token
+        // consume the assert token
+        let start = self.maybe_next()?;
         let expr = self.expression()?;
-        self.expect_semicolon(expr.span)?;
-        Ok(Statement::new(Stmt::Print(expr.clone()), expr.span))
+        let span = StartEndSpan::new(start.span.start, expr.span.end);
+        self.expect_semicolon(span)?;
+        Ok(Statement::new(Stmt::Print(expr), span))
     }
 
     fn read_statement(&mut self) -> Result<Statement, ParseError> {
+        // consume the read token
+        let start = self.maybe_next()?;
         let token = self.maybe_next()?;
+        let span = StartEndSpan::new(start.span.start, token.span.end);
 
         let tokentype = token.tokentype();
         let name;
         let expr = match tokentype {
             RawToken::Identifier(n) => {
                 name = n.clone();
-                Expression::new(Expr::VariableUsage(n), token.span)
+                Expression::new(Expr::VariableUsage(n), span)
             }
             _ => {
                 return Err(ParseError::ReadToNonVariable(
                     format!("{:?}", token.token),
-                    token.span.into(),
+                    span.into(),
                 ))
             }
         };
         self.expect_semicolon(expr.span)?;
-        Ok(Statement::new(Stmt::Read(name), token.span))
+        Ok(Statement::new(Stmt::Read(name), span))
     }
 
     fn epxr_statement(&mut self) -> Result<Statement, ParseError> {
