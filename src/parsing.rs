@@ -54,111 +54,114 @@ impl Parser {
         Ok(declarations)
     }
 
-    fn declaration(&mut self) -> Result<Statement, ParseError> {
+    /// Internal helper: returns the peeked next token, or an OutOfTokens error
+    fn maybe_peek(&mut self) -> Result<&Token, ParseError> {
         if let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Var) {
-                // parse a variable declaration
-                self.var_declaration()
-            } else {
-                // parse some other statement
-                self.statement()
-            }
+            Ok(next)
         } else {
+            // TODO: proper error span!
             Err(ParseError::OutOfTokens((0, 0).into()))
+        }
+    }
+
+    /// Internal helper: returns the next token, consumed from the iterator, or an OutOfTokens error
+    fn maybe_next(&mut self) -> Result<Token, ParseError> {
+        if let Some(next) = self.tokens.next() {
+            Ok(next)
+        } else {
+            // TODO: proper error span!
+            Err(ParseError::OutOfTokens((0, 0).into()))
+        }
+    }
+
+    fn declaration(&mut self) -> Result<Statement, ParseError> {
+        let next = self.maybe_peek()?;
+        let tokentype = next.tokentype();
+        if matches!(tokentype, Var) {
+            // parse a variable declaration
+            self.var_declaration()
+        } else {
+            // parse some other statement
+            self.statement()
         }
     }
 
     fn var_declaration(&mut self) -> Result<Statement, ParseError> {
         // consume the var token
-        let var = self
-            .tokens
-            .next()
-            .ok_or_else(|| ParseError::OutOfTokens((0, 0).into()))?;
+        let var = self.maybe_next()?;
 
         // get identifier
-        let identifier;
-        if let Some(next) = self.tokens.next() {
-            if let RawToken::Identifier(name) = &next.token {
-                identifier = name.clone();
-            } else {
-                return Err(ParseError::ExpectedIdentifier(
-                    format!("{:?}", next.token),
-                    next.span.into(),
-                ));
-            };
+        let next = self.maybe_next()?;
+        let identifier = if let RawToken::Identifier(name) = &next.token {
+            name.clone()
         } else {
-            return Err(ParseError::OutOfTokens((0, 0).into()));
-        }
+            return Err(ParseError::ExpectedIdentifier(
+                format!("{:?}", next.token),
+                next.span.into(),
+            ));
+        };
 
         // require type annotation colon
-        if let Some(next) = self.tokens.next() {
-            if !matches!(next.tokentype(), Colon) {
+        let next = self.maybe_next()?;
+        if !matches!(next.tokentype(), Colon) {
+            return Err(ParseError::ExpectedTypeAnnotation(
+                format!("{:?}", next.token),
+                next.span.into(),
+            ));
+        }
+
+        // get type annotation
+        // TODO: parse time typechecking? or just at run time?
+        let next = self.maybe_next()?;
+        let kind = match next.tokentype() {
+            Bool => VarType::Bool,
+            Int => VarType::Int,
+            RawToken::String => VarType::Text,
+            _ => {
                 return Err(ParseError::ExpectedTypeAnnotation(
                     format!("{:?}", next.token),
                     next.span.into(),
                 ));
             }
-        } else {
-            return Err(ParseError::OutOfTokens((0, 0).into()));
-        }
-        // get type annotation
-        let kind; // TODO: type checking!
-        if let Some(next) = self.tokens.next() {
-            match next.tokentype() {
-                Bool => kind = VarType::Bool,
-                Int => kind = VarType::Int,
-                RawToken::String => kind = VarType::Text,
-                _ => {
-                    return Err(ParseError::ExpectedTypeAnnotation(
-                        format!("{:?}", next.token),
-                        next.span.into(),
-                    ));
-                }
-            }
-        } else {
-            return Err(ParseError::OutOfTokens((0, 0).into()));
-        }
+        };
 
         // optional assignment
         // TODO: simplify
-        if let Some(next) = self.tokens.next() {
-            if matches!(next.tokentype(), Assign) {
-                // get initializer expression
-                let initializer = self.expression()?;
-                let span = StartEndSpan::new(var.span.start, initializer.span.end);
-                // get semicolon
-                if let Some(_token) = self
-                    .tokens
-                    .next_if(|token| matches!(token.tokentype(), Semicolon))
-                {
-                    return Ok(Statement::new(
-                        Stmt::VariableDefinition(Variable::new(
-                            &identifier,
-                            kind,
-                            Some(initializer),
-                            span,
-                        )),
-                        span,
-                    ));
-                }
-                // otherwise, missing semicolon
-                return Err(ParseError::MissingSemicolon(span.into()));
-            } else if matches!(next.tokentype(), Semicolon) {
-                let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+        let next = self.maybe_next()?;
+        if matches!(next.tokentype(), Assign) {
+            // get initializer expression
+            let initializer = self.expression()?;
+            let span = StartEndSpan::new(var.span.start, initializer.span.end);
+            // get semicolon
+            if let Some(_token) = self
+                .tokens
+                .next_if(|token| matches!(token.tokentype(), Semicolon))
+            {
                 return Ok(Statement::new(
-                    Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
+                    Stmt::VariableDefinition(Variable::new(
+                        &identifier,
+                        kind,
+                        Some(initializer),
+                        span,
+                    )),
                     span,
                 ));
-            } else if matches!(next.tokentype(), Equal) {
-                // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
-                return Err(ParseError::ExpectedWalrus((next.span).into()));
             }
             // otherwise, missing semicolon
-            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
             return Err(ParseError::MissingSemicolon(span.into()));
+        } else if matches!(next.tokentype(), Semicolon) {
+            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+            return Ok(Statement::new(
+                Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
+                span,
+            ));
+        } else if matches!(next.tokentype(), Equal) {
+            // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
+            return Err(ParseError::ExpectedWalrus((next.span).into()));
         }
-        Err(ParseError::OutOfTokens((0, 0).into()))
+        // otherwise, missing semicolon
+        let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+        Err(ParseError::MissingSemicolon(span.into()))
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
@@ -199,73 +202,68 @@ impl Parser {
     }
 
     fn for_statement(&mut self) -> Result<Statement, ParseError> {
-        // consume the for token // TODO: remove unwrap
-        let start = self.tokens.next().unwrap();
+        // consume the for token
+        let start = self.maybe_next()?;
+
         // variable name literal
         let name;
-        if let Some(next) = self.tokens.next() {
-            let tokentype = next.tokentype();
-            match tokentype {
-                RawToken::Identifier(n) => name = n,
-                _ => {
-                    return Err(ParseError::ForMissingVariable(
-                        format!("{:?}", next.token),
-                        next.span.into(),
-                    ))
-                }
-            };
-        } else {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+        let next = self.maybe_next()?;
+
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::Identifier(n) => name = n,
+            _ => {
+                return Err(ParseError::ForMissingVariable(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
         };
+
         // in keyword
-        if let Some(next) = self.tokens.next() {
-            let tokentype = next.tokentype();
-            match tokentype {
-                RawToken::In => (),
-                _ => {
-                    return Err(ParseError::ForMissingIn(
-                        format!("{:?}", next.token),
-                        next.span.into(),
-                    ))
-                }
-            };
-        } else {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+        let next = self.maybe_next()?;
+
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::In => (),
+            _ => {
+                return Err(ParseError::ForMissingIn(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
         };
+
         // left expr
         let left = self.expression()?;
         // range literal
-        if let Some(next) = self.tokens.next() {
-            let tokentype = next.tokentype();
-            match tokentype {
-                Range => (),
-                _ => {
-                    return Err(ParseError::ForMissingRange(
-                        format!("{:?}", next.token),
-                        next.span.into(),
-                    ))
-                }
-            };
-        } else {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+        let next = self.maybe_next()?;
+        let tokentype = next.tokentype();
+        match tokentype {
+            Range => (),
+            _ => {
+                return Err(ParseError::ForMissingRange(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
         };
+
         // right expr
         let right = self.expression()?;
         // do keyword
-        if let Some(next) = self.tokens.next() {
-            let tokentype = next.tokentype();
-            match tokentype {
-                RawToken::Do => (),
-                _ => {
-                    return Err(ParseError::ForMissingDo(
-                        format!("{:?}", next.token),
-                        next.span.into(),
-                    ))
-                }
-            };
-        } else {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+        let next = self.maybe_next()?;
+        let tokentype = next.tokentype();
+        match tokentype {
+            RawToken::Do => (),
+            _ => {
+                return Err(ParseError::ForMissingDo(
+                    format!("{:?}", next.token),
+                    next.span.into(),
+                ))
+            }
         };
+
         // loop body
         let mut body = Vec::new();
         while let Some(next) = self.tokens.peek() {
@@ -275,28 +273,26 @@ impl Parser {
                 // consume the end token
                 self.tokens.next();
                 // expect to find for token
-                if let Some(next) = self.tokens.next() {
-                    let tokentype = next.tokentype();
-                    match tokentype {
-                        For => {
-                            // expect to find semicolon
-                            if let Some(_token) = self
-                                .tokens
-                                .next_if(|token| matches!(token.tokentype(), Semicolon))
-                            {
-                                break;
-                            }
-                            return Err(ParseError::MissingSemicolon(next.span.into()));
+                let next = self.maybe_next()?;
+                let tokentype = next.tokentype();
+                match tokentype {
+                    For => {
+                        // expect to find semicolon
+                        if let Some(_token) = self
+                            .tokens
+                            .next_if(|token| matches!(token.tokentype(), Semicolon))
+                        {
+                            break;
                         }
-                        _ => {
-                            return Err(ParseError::EndMissingFor(
-                                format!("{:?}", next.token),
-                                next.span.into(),
-                            ))
-                        }
+                        return Err(ParseError::MissingSemicolon(next.span.into()));
+                    }
+                    _ => {
+                        return Err(ParseError::EndMissingFor(
+                            format!("{:?}", next.token),
+                            next.span.into(),
+                        ))
                     }
                 }
-                return Err(ParseError::NothingToParse((0, 0).into()));
             }
             // Otherwise, parse full statements into the loop body
             let statement = self.statement()?;
@@ -324,31 +320,29 @@ impl Parser {
     }
 
     fn read_statement(&mut self) -> Result<Statement, ParseError> {
-        if let Some(token) = self.tokens.next() {
-            let tokentype = token.tokentype();
-            let name;
-            let expr = match tokentype {
-                RawToken::Identifier(n) => {
-                    name = n.clone();
-                    Expression::new(Expr::VariableUsage(n), token.span)
-                }
-                _ => {
-                    return Err(ParseError::ReadToNonVariable(
-                        format!("{:?}", token.token),
-                        token.span.into(),
-                    ))
-                }
-            };
-            if let Some(_token) = self
-                .tokens
-                .next_if(|token| matches!(token.tokentype(), Semicolon))
-            {
-                Ok(Statement::new(Stmt::Read(name), token.span))
-            } else {
-                Err(ParseError::MissingSemicolon(expr.span.into()))
+        let token = self.maybe_next()?;
+
+        let tokentype = token.tokentype();
+        let name;
+        let expr = match tokentype {
+            RawToken::Identifier(n) => {
+                name = n.clone();
+                Expression::new(Expr::VariableUsage(n), token.span)
             }
+            _ => {
+                return Err(ParseError::ReadToNonVariable(
+                    format!("{:?}", token.token),
+                    token.span.into(),
+                ))
+            }
+        };
+        if let Some(_token) = self
+            .tokens
+            .next_if(|token| matches!(token.tokentype(), Semicolon))
+        {
+            Ok(Statement::new(Stmt::Read(name), token.span))
         } else {
-            Err(ParseError::OutOfTokens((0, 0).into()))
+            Err(ParseError::MissingSemicolon(expr.span.into()))
         }
     }
 
@@ -524,36 +518,32 @@ impl Parser {
     fn primary(&mut self) -> Result<Expression, ParseError> {
         // At a terminal value, we need to always consume the token ?
         // TODO: verify
-        if let Some(token) = self.tokens.next() {
-            let tokentype = token.tokentype();
-            match tokentype {
-                False | True | Number(_) | Text(_) => Ok(Expression::new(
-                    Expr::Literal(Literal::new(token.clone())),
-                    token.span,
-                )),
-                RawToken::Identifier(name) => {
-                    Ok(Expression::new(Expr::VariableUsage(name), token.span))
-                }
-                ParenLeft => {
-                    let expr = self.expression()?;
-                    if let Some(_token) =
-                        self.tokens.next_if(|token| token.tokentype() == ParenRight)
-                    {
-                        Ok(Expression::new(
-                            Expr::Grouping(Grouping::new(expr.expr)),
-                            expr.span,
-                        ))
-                    } else {
-                        Err(ParseError::MissingParen(token.span.into()))
-                    }
-                }
-                _ => Err(ParseError::ExpectedExpression(
-                    format!("{:?}", token.token),
-                    token.span.into(),
-                )),
+        let token = self.maybe_next()?;
+
+        let tokentype = token.tokentype();
+        match tokentype {
+            False | True | Number(_) | Text(_) => Ok(Expression::new(
+                Expr::Literal(Literal::new(token.clone())),
+                token.span,
+            )),
+            RawToken::Identifier(name) => {
+                Ok(Expression::new(Expr::VariableUsage(name), token.span))
             }
-        } else {
-            Err(ParseError::OutOfTokens((0, 0).into()))
+            ParenLeft => {
+                let expr = self.expression()?;
+                if let Some(_token) = self.tokens.next_if(|token| token.tokentype() == ParenRight) {
+                    Ok(Expression::new(
+                        Expr::Grouping(Grouping::new(expr.expr)),
+                        expr.span,
+                    ))
+                } else {
+                    Err(ParseError::MissingParen(token.span.into()))
+                }
+            }
+            _ => Err(ParseError::ExpectedExpression(
+                format!("{:?}", token.token),
+                token.span.into(),
+            )),
         }
     }
 }
