@@ -39,7 +39,7 @@ mod tests {
     #[test]
     fn number_multidigit() {
         let token = &scan("1234567890").unwrap()[0];
-        let expected = Token::new(Number(1234567890), StartEndSpan::new(0, 10));
+        let expected = Token::new(Number(1_234_567_890), StartEndSpan::new(0, 10));
         assert_eq!(token, &expected);
     }
 }

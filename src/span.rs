@@ -16,7 +16,8 @@ pub struct StartEndSpan {
 }
 
 impl StartEndSpan {
-    /// Creates a new StartEndSpan given the two byte offsets
+    /// Creates a new [`StartEndSpan`] given the two byte offsets
+    #[must_use]
     pub fn new(start: usize, end: usize) -> Self {
         Self { start, end }
     }

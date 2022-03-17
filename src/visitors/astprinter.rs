@@ -13,18 +13,19 @@ const INDENT: &str = "    ";
 // TODO: this feels incredibly un-ergonomic, how is this visitor pattern best used in rust?
 
 #[derive(Debug)]
-/// [ASTPrinter] is a [Visitor] for prettyprinting the abstract syntax tree of the given expression
+/// [`ASTPrinter`] is a [`Visitor`] for prettyprinting the abstract syntax tree of the given expression
 pub struct ASTPrinter {
     nest_level: u64,
 }
 
 impl ASTPrinter {
-    /// Creates a new [ASTPrinter] with `nest_level: 0`.
+    /// Creates a new [`ASTPrinter`] with `nest_level: 0`.
+    #[must_use]
     pub fn default() -> Self {
         Self { nest_level: 0 }
     }
 
-    /// The primary function of the [ASTPrinter]: returns the prettyprinted [String] representation of the abstract syntax tree of the given expression
+    /// The primary function of the [`ASTPrinter`]: returns the prettyprinted [String] representation of the abstract syntax tree of the given expression
     pub fn print(&mut self, statement: &Statement) -> Result<String> {
         self.visit_statement(statement)
     }

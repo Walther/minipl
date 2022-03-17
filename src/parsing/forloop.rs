@@ -12,6 +12,7 @@ pub struct Forloop {
 }
 
 impl Forloop {
+    #[must_use]
     pub fn new(
         variable: &str,
         left: Expression,

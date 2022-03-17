@@ -20,9 +20,8 @@ pub(crate) fn scan_slash(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
         for (_, next) in iter {
             if next == '\n' {
                 break;
-            } else {
-                length += 1;
             }
+            length += 1;
         }
         return Token::new(Comment, StartEndSpan::new(start, start + length));
     }

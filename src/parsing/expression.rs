@@ -20,6 +20,7 @@ pub struct Expression {
 }
 
 impl Expression {
+    #[must_use]
     pub fn new(expr: Expr, span: StartEndSpan) -> Self {
         Self { expr, span }
     }
@@ -33,6 +34,7 @@ pub struct Assign {
 }
 
 impl Assign {
+    #[must_use]
     pub fn new(name: &str, token: Token, value: Expr) -> Self {
         Self {
             name: name.to_owned(),
@@ -50,6 +52,7 @@ pub struct Binary {
 }
 
 impl Binary {
+    #[must_use]
     pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
         Self {
             left: Box::new(left),
@@ -65,6 +68,7 @@ pub struct Grouping {
 }
 
 impl Grouping {
+    #[must_use]
     pub fn new(expression: Expr) -> Self {
         Self {
             expression: Box::new(expression),
@@ -78,6 +82,7 @@ pub struct Literal {
 }
 
 impl Literal {
+    #[must_use]
     pub fn new(value: Token) -> Self {
         Self { value }
     }
@@ -91,6 +96,7 @@ pub struct Logical {
 }
 
 impl Logical {
+    #[must_use]
     pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
         Self {
             left: Box::new(left),
@@ -107,6 +113,7 @@ pub struct Unary {
 }
 
 impl Unary {
+    #[must_use]
     pub fn new(operator: Token, right: Expr) -> Self {
         Self {
             operator,

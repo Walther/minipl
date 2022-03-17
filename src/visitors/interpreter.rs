@@ -22,9 +22,10 @@ pub struct Interpreter {
 
 impl Interpreter {
     /// Creates a new [Interpreter] object
+    #[must_use]
     pub fn new() -> Self {
         Self {
-            environment: Default::default(),
+            environment: Environment::default(),
         }
     }
 }
@@ -196,17 +197,15 @@ impl Visitor<Object> for Interpreter {
                 let result = self.visit_expression(e)?;
                 match result.as_bool() {
                     Ok(bool) => {
-                        if !bool {
-                            return Err(miette!("Assertion failed: {:?}", e.expr));
-                        } else {
+                        if bool {
                             return Ok(Object::Nothing);
                         }
+                        return Err(miette!("Assertion failed: {:?}", e.expr));
                     }
                     Err(_) => return Err(miette!("Assert statement must evaluate to a boolean")),
                 };
             }
-            Stmt::Expression(expr) => expr,
-            Stmt::Print(expr) => expr,
+            Stmt::Expression(expr) | Stmt::Print(expr) => expr,
             Stmt::Read(name) => {
                 // TODO: better input handling
                 // TODO: less hacky

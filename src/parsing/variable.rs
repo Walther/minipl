@@ -18,6 +18,7 @@ pub struct Variable {
 }
 
 impl Variable {
+    #[must_use]
     pub fn new(
         name: &str,
         kind: VarType,

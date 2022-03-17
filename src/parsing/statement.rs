@@ -20,6 +20,7 @@ pub struct Statement {
 }
 
 impl Statement {
+    #[must_use]
     pub fn new(stmt: Stmt, span: StartEndSpan) -> Self {
         Self { stmt, span }
     }

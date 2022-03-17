@@ -195,9 +195,9 @@ pub fn var_declaration(
                     )),
                     span,
                 ));
-            } else {
-                return Err(ParseError::MissingSemicolon(span.into()));
-            };
+            }
+            // otherwise, missing semicolon
+            return Err(ParseError::MissingSemicolon(span.into()));
         } else if matches!(next.tokentype(), Semicolon) {
             let span = StartEndSpan::new(var.span.start, next.span.end - 1);
             return Ok(Statement::new(
@@ -207,10 +207,10 @@ pub fn var_declaration(
         } else if matches!(next.tokentype(), Equal) {
             // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
             return Err(ParseError::ExpectedWalrus((next.span).into()));
-        } else {
-            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
-            return Err(ParseError::MissingSemicolon(span.into()));
-        };
+        }
+        // otherwise, missing semicolon
+        let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+        return Err(ParseError::MissingSemicolon(span.into()));
     }
     Err(ParseError::OutOfTokens((0, 0).into()))
 }
@@ -341,9 +341,8 @@ pub fn for_statement(
                             tokens.next_if(|token| matches!(token.tokentype(), Semicolon))
                         {
                             break;
-                        } else {
-                            return Err(ParseError::MissingSemicolon(next.span.into()));
                         }
+                        return Err(ParseError::MissingSemicolon(next.span.into()));
                     }
                     _ => {
                         return Err(ParseError::EndMissingFor(
@@ -352,14 +351,12 @@ pub fn for_statement(
                         ))
                     }
                 }
-            } else {
-                return Err(ParseError::NothingToParse((0, 0).into()));
             }
-        } else {
-            // Otherwise, parse full statements into the loop body
-            let statement = statement(tokens)?;
-            body.push(statement);
+            return Err(ParseError::NothingToParse((0, 0).into()));
         }
+        // Otherwise, parse full statements into the loop body
+        let statement = statement(tokens)?;
+        body.push(statement);
     }
 
     let last = body.last().unwrap(); // TODO: remove unwrap
