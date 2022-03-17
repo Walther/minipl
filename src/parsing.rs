@@ -12,9 +12,9 @@ pub use forloop::*;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
-    self, Assert, Assign, Bang, Bool, Colon, End, Equal, False, For, Identifier, Int, Less, Minus,
-    Number, ParenLeft, ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text, True,
-    Var,
+    self, And, Assert, Assign, Bang, Bool, Colon, End, Equal, False, For, Identifier, Int, Less,
+    Minus, Number, ParenLeft, ParenRight, Plus, Print, Range, Read, Semicolon, Slash, Star, Text,
+    True, Var,
 };
 use crate::tokens::Token;
 mod parse_error;
@@ -78,6 +78,12 @@ impl Parser {
     /// Internal helper: if the next token matches the given type, returns it and consumes it from the iterator. If the next one does not match, does not consume it and returns None
     fn next_if_tokentype(&mut self, tokentype: RawToken) -> Option<Token> {
         self.tokens.next_if(|token| token.tokentype() == tokentype)
+    }
+
+    /// Internal helper: if the next token matches either of the given two types, returns it and consumes it from the iterator. If the next one does not match, does not consume it and returns None. This is perhaps not an ideal solution, but I can't have patterns like `Plus | Minus` as a parameter like the `matches!` macro can
+    fn next_if_tokentype2(&mut self, tokentype1: RawToken, tokentype2: RawToken) -> Option<Token> {
+        self.tokens
+            .next_if(|token| token.tokentype() == tokentype1 || token.tokentype() == tokentype2)
     }
 
     /// Internal helper: expect the next token to be a Semicolon, and consume it, or return a MissingSemicolon error with the given span
@@ -337,31 +343,25 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.and()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            // Assignment
-            if matches!(next.tokentype(), Assign) {
-                let assign = next.clone();
-                self.tokens.next();
-                let right = self.and()?;
-                // TODO: better name getter
-                let name = match expr.expr {
-                    Expr::VariableUsage(s) => s,
-                    _ => {
-                        return Err(ParseError::AssignToNonVariable(
-                            format!("{:?}", expr.expr),
-                            expr.span.into(),
-                        ))
-                    }
-                };
-                expr = Expression::new(
-                    Expr::Assign(crate::parsing::expression::Assign::new(
-                        &name, assign, right.expr,
-                    )),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        // Handle repeated assigns // TODO: does this actually make sense? x = y = 2 or similar
+        while let Some(assign) = self.next_if_tokentype(Assign) {
+            let right = self.and()?;
+            // TODO: better name getter
+            let name = match expr.expr {
+                Expr::VariableUsage(s) => s,
+                _ => {
+                    return Err(ParseError::AssignToNonVariable(
+                        format!("{:?}", expr.expr),
+                        expr.span.into(),
+                    ))
+                }
+            };
+            expr = Expression::new(
+                Expr::Assign(crate::parsing::expression::Assign::new(
+                    &name, assign, right.expr,
+                )),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -369,18 +369,12 @@ impl Parser {
     fn and(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.equality()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            if matches!(next.tokentype(), RawToken::And) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.comparison()?;
-                expr = Expression::new(
-                    Expr::Logical(Logical::new(expr.expr, operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        while let Some(operator) = self.next_if_tokentype(And) {
+            let right = self.comparison()?;
+            expr = Expression::new(
+                Expr::Logical(Logical::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -388,18 +382,12 @@ impl Parser {
     fn equality(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.comparison()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            if matches!(next.tokentype(), Equal) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.comparison()?;
-                expr = Expression::new(
-                    Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        while let Some(operator) = self.next_if_tokentype(Equal) {
+            let right = self.comparison()?;
+            expr = Expression::new(
+                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -407,18 +395,12 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.term()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            if matches!(next.tokentype(), Less) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.term()?;
-                expr = Expression::new(
-                    Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        while let Some(operator) = self.next_if_tokentype(Less) {
+            let right = self.term()?;
+            expr = Expression::new(
+                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -426,18 +408,12 @@ impl Parser {
     fn term(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.factor()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            if matches!(next.tokentype(), Minus | Plus) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.factor()?;
-                expr = Expression::new(
-                    Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        while let Some(operator) = self.next_if_tokentype2(Minus, Plus) {
+            let right = self.factor()?;
+            expr = Expression::new(
+                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -445,18 +421,12 @@ impl Parser {
     fn factor(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.unary()?;
         let spanstart = expr.span.start;
-        while let Some(next) = self.tokens.peek() {
-            if matches!(next.tokentype(), Slash | Star) {
-                let operator = next.clone();
-                self.tokens.next();
-                let right = self.unary()?;
-                expr = Expression::new(
-                    Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
-                    StartEndSpan::new(spanstart, right.span.end),
-                );
-            } else {
-                break;
-            }
+        while let Some(operator) = self.next_if_tokentype2(Slash, Star) {
+            let right = self.unary()?;
+            expr = Expression::new(
+                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                StartEndSpan::new(spanstart, right.span.end),
+            );
         }
         Ok(expr)
     }
@@ -464,9 +434,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expression, ParseError> {
         let next = self.maybe_peek()?;
         let spanstart = next.span.start;
-        if matches!(next.tokentype(), Bang | Minus) {
-            let operator = next.clone();
-            self.tokens.next();
+        if let Some(operator) = self.next_if_tokentype2(Bang, Minus) {
             let right = self.unary()?;
             return Ok(Expression::new(
                 Expr::Unary(Unary::new(operator, right.expr)),
