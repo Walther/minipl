@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // TODO: remove clippy allow
+
 use std::{
     iter::{Enumerate, Peekable},
     str::Chars,

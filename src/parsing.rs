@@ -18,7 +18,7 @@ use crate::tokens::RawToken::{
 };
 use crate::tokens::Token;
 mod parse_error;
-pub use parse_error::ParseError;
+pub use parse_error::ParseError::{self, *};
 
 #[derive(Debug)]
 /// The parser for the Mini-PL programming language
@@ -38,7 +38,7 @@ impl Parser {
     /// Parses the tokens, returning [`Vec<Statement>`] or [`ParseError`]
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
         if self.tokens.len() == 0 {
-            return Err(ParseError::NothingToParse((0, 0).into()));
+            return Err(NothingToParse((0, 0).into()));
         }
 
         let mut declarations: Vec<Statement> = Vec::new();
@@ -61,7 +61,7 @@ impl Parser {
             Ok(next)
         } else {
             // TODO: proper error span!
-            Err(ParseError::OutOfTokens((0, 0).into()))
+            Err(OutOfTokens((0, 0).into()))
         }
     }
 
@@ -71,7 +71,7 @@ impl Parser {
             Ok(next)
         } else {
             // TODO: proper error span!
-            Err(ParseError::OutOfTokens((0, 0).into()))
+            Err(OutOfTokens((0, 0).into()))
         }
     }
 
@@ -93,7 +93,7 @@ impl Parser {
             return Ok(());
         }
         // otherwise, missing semicolon
-        Err(ParseError::MissingSemicolon(span.into()))
+        Err(MissingSemicolon(span.into()))
     }
 
     fn declaration(&mut self) -> Result<Statement, ParseError> {
@@ -115,7 +115,7 @@ impl Parser {
         let identifier = if let Identifier(name) = &next.token {
             name.clone()
         } else {
-            return Err(ParseError::ExpectedIdentifier(
+            return Err(ExpectedIdentifier(
                 format!("{:?}", next.token),
                 next.span.into(),
             ));
@@ -124,7 +124,7 @@ impl Parser {
         // require type annotation colon
         let next = self.maybe_next()?;
         if !matches!(next.tokentype(), Colon) {
-            return Err(ParseError::ExpectedTypeAnnotation(
+            return Err(ExpectedTypeAnnotation(
                 format!("{:?}", next.token),
                 next.span.into(),
             ));
@@ -138,7 +138,7 @@ impl Parser {
             Int => VarType::Int,
             RawToken::String => VarType::Text,
             _ => {
-                return Err(ParseError::ExpectedTypeAnnotation(
+                return Err(ExpectedTypeAnnotation(
                     format!("{:?}", next.token),
                     next.span.into(),
                 ));
@@ -174,12 +174,12 @@ impl Parser {
             }
             Equal => {
                 // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
-                Err(ParseError::ExpectedWalrus((next.span).into()))
+                Err(ExpectedWalrus((next.span).into()))
             }
             _ => {
                 // otherwise, missing semicolon
                 let span = StartEndSpan::new(var.span.start, next.span.end - 1);
-                Err(ParseError::MissingSemicolon(span.into()))
+                Err(MissingSemicolon(span.into()))
             }
         }
     }
@@ -214,7 +214,7 @@ impl Parser {
         let name = match next.tokentype() {
             Identifier(n) => n,
             _ => {
-                return Err(ParseError::ForMissingVariable(
+                return Err(ForMissingVariable(
                     format!("{:?}", next.token),
                     next.span.into(),
                 ))
@@ -225,12 +225,7 @@ impl Parser {
         let next = self.maybe_next()?;
         match next.tokentype() {
             RawToken::In => (),
-            _ => {
-                return Err(ParseError::ForMissingIn(
-                    format!("{:?}", next.token),
-                    next.span.into(),
-                ))
-            }
+            _ => return Err(ForMissingIn(format!("{:?}", next.token), next.span.into())),
         };
 
         // left expr
@@ -240,7 +235,7 @@ impl Parser {
         match next.tokentype() {
             Range => (),
             _ => {
-                return Err(ParseError::ForMissingRange(
+                return Err(ForMissingRange(
                     format!("{:?}", next.token),
                     next.span.into(),
                 ))
@@ -253,12 +248,7 @@ impl Parser {
         let next = self.maybe_next()?;
         match next.tokentype() {
             RawToken::Do => (),
-            _ => {
-                return Err(ParseError::ForMissingDo(
-                    format!("{:?}", next.token),
-                    next.span.into(),
-                ))
-            }
+            _ => return Err(ForMissingDo(format!("{:?}", next.token), next.span.into())),
         };
 
         // loop body
@@ -276,12 +266,7 @@ impl Parser {
                         self.expect_semicolon(next.span)?;
                         break;
                     }
-                    _ => {
-                        return Err(ParseError::EndMissingFor(
-                            format!("{:?}", next.token),
-                            next.span.into(),
-                        ))
-                    }
+                    _ => return Err(EndMissingFor(format!("{:?}", next.token), next.span.into())),
                 }
             }
             // Otherwise, parse full statements into the loop body
@@ -289,7 +274,9 @@ impl Parser {
             body.push(statement);
         }
 
-        let last = body.last().unwrap(); // TODO: remove unwrap
+        let last = body
+            .last()
+            .ok_or_else(|| OutOfTokens(StartEndSpan::new(0, 0).into()))?;
         let span = StartEndSpan::new(start.span.start, last.span.end);
         Ok(Statement::new(
             Stmt::Forloop(Forloop::new(&name, left, right, body, span)),
@@ -319,12 +306,7 @@ impl Parser {
                 name = n.clone();
                 Expression::new(Expr::VariableUsage(n), span)
             }
-            _ => {
-                return Err(ParseError::ReadToNonVariable(
-                    format!("{:?}", next.token),
-                    span.into(),
-                ))
-            }
+            _ => return Err(ReadToNonVariable(format!("{:?}", next.token), span.into())),
         };
         self.expect_semicolon(expr.span)?;
         Ok(Statement::new(Stmt::Read(name), span))
@@ -350,7 +332,7 @@ impl Parser {
             let name = match expr.expr {
                 Expr::VariableUsage(s) => s,
                 _ => {
-                    return Err(ParseError::AssignToNonVariable(
+                    return Err(AssignToNonVariable(
                         format!("{:?}", expr.expr),
                         expr.span.into(),
                     ))
@@ -462,10 +444,10 @@ impl Parser {
                         expr.span,
                     ))
                 } else {
-                    Err(ParseError::MissingParen(next.span.into()))
+                    Err(MissingParen(next.span.into()))
                 }
             }
-            _ => Err(ParseError::ExpectedExpression(
+            _ => Err(ExpectedExpression(
                 format!("{:?}", next.token),
                 next.span.into(),
             )),
@@ -475,6 +457,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use crate::parsing::*;
 
     #[test]

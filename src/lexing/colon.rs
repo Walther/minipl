@@ -22,6 +22,7 @@ pub(crate) fn scan_colon(iter: &mut Peekable<Enumerate<Chars>>) -> Token {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use crate::{lexing::*, span::StartEndSpan};
 
     #[test]
