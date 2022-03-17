@@ -92,8 +92,7 @@ impl Parser {
 
     fn declaration(&mut self) -> Result<Statement, ParseError> {
         let next = self.maybe_peek()?;
-        let tokentype = next.tokentype();
-        match tokentype {
+        match next.tokentype() {
             // parse a variable declaration
             Var => self.var_declaration(),
             // parse some other statement
@@ -181,9 +180,8 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
         let next = self.maybe_peek()?;
-        let tokentype = next.tokentype();
 
-        match tokentype {
+        match next.tokentype() {
             For => self.for_statement(),
             Assert => self.assert_statement(),
             Print => self.print_statement(),
@@ -206,12 +204,9 @@ impl Parser {
         let start = self.maybe_next()?;
 
         // variable name literal
-        let name;
         let next = self.maybe_next()?;
-
-        let tokentype = next.tokentype();
-        match tokentype {
-            Identifier(n) => name = n,
+        let name = match next.tokentype() {
+            Identifier(n) => n,
             _ => {
                 return Err(ParseError::ForMissingVariable(
                     format!("{:?}", next.token),
@@ -222,9 +217,7 @@ impl Parser {
 
         // in keyword
         let next = self.maybe_next()?;
-
-        let tokentype = next.tokentype();
-        match tokentype {
+        match next.tokentype() {
             RawToken::In => (),
             _ => {
                 return Err(ParseError::ForMissingIn(
@@ -238,8 +231,7 @@ impl Parser {
         let left = self.expression()?;
         // range literal
         let next = self.maybe_next()?;
-        let tokentype = next.tokentype();
-        match tokentype {
+        match next.tokentype() {
             Range => (),
             _ => {
                 return Err(ParseError::ForMissingRange(
@@ -253,8 +245,7 @@ impl Parser {
         let right = self.expression()?;
         // do keyword
         let next = self.maybe_next()?;
-        let tokentype = next.tokentype();
-        match tokentype {
+        match next.tokentype() {
             RawToken::Do => (),
             _ => {
                 return Err(ParseError::ForMissingDo(
@@ -267,15 +258,13 @@ impl Parser {
         // loop body
         let mut body = Vec::new();
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
             // Have we found the end?
-            if matches!(tokentype, End) {
+            if matches!(next.tokentype(), End) {
                 // consume the end token
                 self.tokens.next();
                 // expect to find for token
                 let next = self.maybe_next()?;
-                let tokentype = next.tokentype();
-                match tokentype {
+                match next.tokentype() {
                     For => {
                         // expect to find semicolon
                         self.expect_semicolon(next.span)?;
@@ -315,19 +304,18 @@ impl Parser {
     fn read_statement(&mut self) -> Result<Statement, ParseError> {
         // consume the read token
         let start = self.maybe_next()?;
-        let token = self.maybe_next()?;
-        let span = StartEndSpan::new(start.span.start, token.span.end);
+        let next = self.maybe_next()?;
+        let span = StartEndSpan::new(start.span.start, next.span.end);
 
-        let tokentype = token.tokentype();
         let name;
-        let expr = match tokentype {
+        let expr = match next.tokentype() {
             Identifier(n) => {
                 name = n.clone();
                 Expression::new(Expr::VariableUsage(n), span)
             }
             _ => {
                 return Err(ParseError::ReadToNonVariable(
-                    format!("{:?}", token.token),
+                    format!("{:?}", next.token),
                     span.into(),
                 ))
             }
@@ -350,9 +338,8 @@ impl Parser {
         let mut expr = self.and()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
             // Assignment
-            if matches!(tokentype, Assign) {
+            if matches!(next.tokentype(), Assign) {
                 let assign = next.clone();
                 self.tokens.next();
                 let right = self.and()?;
@@ -383,8 +370,7 @@ impl Parser {
         let mut expr = self.equality()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, RawToken::And) {
+            if matches!(next.tokentype(), RawToken::And) {
                 let operator = next.clone();
                 self.tokens.next();
                 let right = self.comparison()?;
@@ -403,8 +389,7 @@ impl Parser {
         let mut expr = self.comparison()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Equal) {
+            if matches!(next.tokentype(), Equal) {
                 let operator = next.clone();
                 self.tokens.next();
                 let right = self.comparison()?;
@@ -423,8 +408,7 @@ impl Parser {
         let mut expr = self.term()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Less) {
+            if matches!(next.tokentype(), Less) {
                 let operator = next.clone();
                 self.tokens.next();
                 let right = self.term()?;
@@ -443,8 +427,7 @@ impl Parser {
         let mut expr = self.factor()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Minus | Plus) {
+            if matches!(next.tokentype(), Minus | Plus) {
                 let operator = next.clone();
                 self.tokens.next();
                 let right = self.factor()?;
@@ -463,8 +446,7 @@ impl Parser {
         let mut expr = self.unary()?;
         let spanstart = expr.span.start;
         while let Some(next) = self.tokens.peek() {
-            let tokentype = next.tokentype();
-            if matches!(tokentype, Slash | Star) {
+            if matches!(next.tokentype(), Slash | Star) {
                 let operator = next.clone();
                 self.tokens.next();
                 let right = self.unary()?;
@@ -482,8 +464,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expression, ParseError> {
         let next = self.maybe_peek()?;
         let spanstart = next.span.start;
-        let tokentype = next.tokentype();
-        if matches!(tokentype, Bang | Minus) {
+        if matches!(next.tokentype(), Bang | Minus) {
             let operator = next.clone();
             self.tokens.next();
             let right = self.unary()?;
@@ -498,14 +479,13 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expression, ParseError> {
         // At a terminal value, we need to always consume the token
-        let token = self.maybe_next()?;
-        let tokentype = token.tokentype();
-        match tokentype {
+        let next = self.maybe_next()?;
+        match next.tokentype() {
             False | True | Number(_) | Text(_) => Ok(Expression::new(
-                Expr::Literal(Literal::new(token.clone())),
-                token.span,
+                Expr::Literal(Literal::new(next.clone())),
+                next.span,
             )),
-            Identifier(name) => Ok(Expression::new(Expr::VariableUsage(name), token.span)),
+            Identifier(name) => Ok(Expression::new(Expr::VariableUsage(name), next.span)),
             ParenLeft => {
                 let expr = self.expression()?;
                 if let Some(_token) = self.next_if_tokentype(ParenRight) {
@@ -514,12 +494,12 @@ impl Parser {
                         expr.span,
                     ))
                 } else {
-                    Err(ParseError::MissingParen(token.span.into()))
+                    Err(ParseError::MissingParen(next.span.into()))
                 }
             }
             _ => Err(ParseError::ExpectedExpression(
-                format!("{:?}", token.token),
-                token.span.into(),
+                format!("{:?}", next.token),
+                next.span.into(),
             )),
         }
     }
