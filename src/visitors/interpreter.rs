@@ -12,6 +12,7 @@ use super::Visitor;
 use crate::parsing::expression::*;
 
 use miette::{miette, Result};
+use tracing::debug;
 
 #[derive(Debug, Default)]
 /// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the given expression
@@ -34,7 +35,8 @@ impl Interpreter {
     /// The primary function of the [Interpreter]: evaluates all statements
     pub fn eval(&mut self, statements: &[Statement]) -> Result<()> {
         for statement in statements {
-            self.visit_statement(statement)?;
+            let result = self.visit_statement(statement)?;
+            debug!("Interpreted: {result:?}");
         }
 
         Ok(())

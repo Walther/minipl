@@ -6,6 +6,7 @@ pub use expression::*;
 mod statement;
 pub use statement::*;
 mod variable;
+use tracing::debug;
 pub use variable::*;
 mod forloop;
 pub use forloop::*;
@@ -49,6 +50,7 @@ impl Parser {
                 break;
             }
             let declaration = self.declaration()?;
+            debug!("Parsed: {declaration:?}");
             declarations.push(declaration);
         }
 
