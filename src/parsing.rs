@@ -74,6 +74,19 @@ impl Parser {
         }
     }
 
+    /// Internal helper: expect the next token to be a Semicolon, and consume it, or return a MissingSemicolon error with the given span
+    fn expect_semicolon(&mut self, span: StartEndSpan) -> Result<(), ParseError> {
+        // get semicolon
+        if let Some(_token) = self
+            .tokens
+            .next_if(|token| matches!(token.tokentype(), Semicolon))
+        {
+            return Ok(());
+        }
+        // otherwise, missing semicolon
+        Err(ParseError::MissingSemicolon(span.into()))
+    }
+
     fn declaration(&mut self) -> Result<Statement, ParseError> {
         let next = self.maybe_peek()?;
         let tokentype = next.tokentype();
@@ -126,18 +139,16 @@ impl Parser {
         };
 
         // optional assignment
-        // TODO: simplify
         let next = self.maybe_next()?;
-        if matches!(next.tokentype(), Assign) {
-            // get initializer expression
-            let initializer = self.expression()?;
-            let span = StartEndSpan::new(var.span.start, initializer.span.end);
-            // get semicolon
-            if let Some(_token) = self
-                .tokens
-                .next_if(|token| matches!(token.tokentype(), Semicolon))
-            {
-                return Ok(Statement::new(
+        match next.tokentype() {
+            Assign => {
+                // get initializer expression
+                let initializer = self.expression()?;
+                let span = StartEndSpan::new(var.span.start, initializer.span.end);
+                // get semicolon
+                self.expect_semicolon(span)?;
+
+                Ok(Statement::new(
                     Stmt::VariableDefinition(Variable::new(
                         &identifier,
                         kind,
@@ -145,23 +156,25 @@ impl Parser {
                         span,
                     )),
                     span,
-                ));
+                ))
             }
-            // otherwise, missing semicolon
-            return Err(ParseError::MissingSemicolon(span.into()));
-        } else if matches!(next.tokentype(), Semicolon) {
-            let span = StartEndSpan::new(var.span.start, next.span.end - 1);
-            return Ok(Statement::new(
-                Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
-                span,
-            ));
-        } else if matches!(next.tokentype(), Equal) {
-            // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
-            return Err(ParseError::ExpectedWalrus((next.span).into()));
+            Semicolon => {
+                let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+                Ok(Statement::new(
+                    Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
+                    span,
+                ))
+            }
+            Equal => {
+                // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
+                Err(ParseError::ExpectedWalrus((next.span).into()))
+            }
+            _ => {
+                // otherwise, missing semicolon
+                let span = StartEndSpan::new(var.span.start, next.span.end - 1);
+                Err(ParseError::MissingSemicolon(span.into()))
+            }
         }
-        // otherwise, missing semicolon
-        let span = StartEndSpan::new(var.span.start, next.span.end - 1);
-        Err(ParseError::MissingSemicolon(span.into()))
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
@@ -191,14 +204,8 @@ impl Parser {
 
     fn assert_statement(&mut self) -> Result<Statement, ParseError> {
         let expr = self.expression()?;
-        if let Some(_token) = self
-            .tokens
-            .next_if(|token| matches!(token.tokentype(), Semicolon))
-        {
-            Ok(Statement::new(Stmt::Assert(expr.clone()), expr.span))
-        } else {
-            Err(ParseError::MissingSemicolon(expr.span.into()))
-        }
+        self.expect_semicolon(expr.span)?;
+        Ok(Statement::new(Stmt::Assert(expr.clone()), expr.span))
     }
 
     fn for_statement(&mut self) -> Result<Statement, ParseError> {
@@ -278,13 +285,8 @@ impl Parser {
                 match tokentype {
                     For => {
                         // expect to find semicolon
-                        if let Some(_token) = self
-                            .tokens
-                            .next_if(|token| matches!(token.tokentype(), Semicolon))
-                        {
-                            break;
-                        }
-                        return Err(ParseError::MissingSemicolon(next.span.into()));
+                        self.expect_semicolon(next.span)?;
+                        break;
                     }
                     _ => {
                         return Err(ParseError::EndMissingFor(
@@ -309,14 +311,8 @@ impl Parser {
 
     fn print_statement(&mut self) -> Result<Statement, ParseError> {
         let expr = self.expression()?;
-        if let Some(_token) = self
-            .tokens
-            .next_if(|token| matches!(token.tokentype(), Semicolon))
-        {
-            Ok(Statement::new(Stmt::Print(expr.clone()), expr.span))
-        } else {
-            Err(ParseError::MissingSemicolon(expr.span.into()))
-        }
+        self.expect_semicolon(expr.span)?;
+        Ok(Statement::new(Stmt::Print(expr.clone()), expr.span))
     }
 
     fn read_statement(&mut self) -> Result<Statement, ParseError> {
@@ -336,26 +332,14 @@ impl Parser {
                 ))
             }
         };
-        if let Some(_token) = self
-            .tokens
-            .next_if(|token| matches!(token.tokentype(), Semicolon))
-        {
-            Ok(Statement::new(Stmt::Read(name), token.span))
-        } else {
-            Err(ParseError::MissingSemicolon(expr.span.into()))
-        }
+        self.expect_semicolon(expr.span)?;
+        Ok(Statement::new(Stmt::Read(name), token.span))
     }
 
     fn epxr_statement(&mut self) -> Result<Statement, ParseError> {
         let expr = self.expression()?;
-        if let Some(_token) = self
-            .tokens
-            .next_if(|token| matches!(token.tokentype(), Semicolon))
-        {
-            Ok(Statement::new(Stmt::Expression(expr.clone()), expr.span))
-        } else {
-            Err(ParseError::MissingSemicolon(expr.span.into()))
-        }
+        self.expect_semicolon(expr.span)?;
+        Ok(Statement::new(Stmt::Expression(expr.clone()), expr.span))
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
