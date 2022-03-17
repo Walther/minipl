@@ -1,7 +1,7 @@
 use std::fs;
 
 use minipl::lexing::scan;
-use minipl::parsing::parse;
+use minipl::parsing::Parser;
 use minipl::tokens::RawToken;
 use minipl::visitors::Interpreter;
 
@@ -45,8 +45,9 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
         info!("Nothing to execute. Source contained ignorable tokens only.");
         return Ok(());
     }
+    let mut parser = Parser::new(tokens);
 
-    let statements = match parse(tokens) {
+    let statements = match parser.parse() {
         Ok(statements) => statements,
         Err(err) => {
             let report: miette::Report = err.into();

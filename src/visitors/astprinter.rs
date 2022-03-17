@@ -1,9 +1,6 @@
 use miette::Result;
 
-use crate::parsing::{
-    statement::{Statement, Stmt},
-    variable::Variable,
-};
+use crate::parsing::{Statement, Stmt, Variable};
 
 use super::Visitor;
 use crate::parsing::expression::*;

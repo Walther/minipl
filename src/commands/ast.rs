@@ -1,7 +1,7 @@
 use std::fs;
 
 use minipl::lexing::scan;
-use minipl::parsing::parse;
+use minipl::parsing::Parser;
 use minipl::tokens::RawToken;
 use minipl::visitors::ASTPrinter;
 
@@ -54,7 +54,9 @@ pub fn ast(path: Utf8PathBuf) -> Result<()> {
         return Ok(());
     }
 
-    let statements = match parse(tokens) {
+    let mut parser = Parser::new(tokens);
+
+    let statements = match parser.parse() {
         Ok(statements) => statements,
         Err(err) => {
             let report: miette::Report = err.into();

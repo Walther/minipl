@@ -1,3 +1,5 @@
+#![allow(missing_docs)] // TODO: document
+
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 

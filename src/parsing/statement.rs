@@ -1,3 +1,5 @@
+#![allow(missing_docs)] // TODO: document
+
 use crate::parsing::{Expression, Variable};
 use crate::span::StartEndSpan;
 
