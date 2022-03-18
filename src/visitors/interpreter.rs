@@ -9,13 +9,13 @@ use crate::{
 };
 
 use super::Visitor;
-use crate::parsing::expression::*;
+use crate::parsing::*;
 
 use miette::{miette, Result};
 use tracing::debug;
 
 #[derive(Debug, Default)]
-/// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the given expression
+/// [Interpreter] is a [Visitor] for interpreting i.e. evaluating the program
 pub struct Interpreter {
     /// Environment for storing variables
     pub environment: Environment,
@@ -46,7 +46,7 @@ impl Interpreter {
 
     //TODO: this should probably be private or deprecated
     /// Internal helper function: evaluates a single [Expr], a raw metadata-less version of [Expression]
-    pub fn eval_expr(&mut self, expr: &Expr) -> Result<Object> {
+    fn eval_expr(&mut self, expr: &Expr) -> Result<Object> {
         match expr {
             Expr::Assign(a) => self.visit_assign(a),
             Expr::Binary(b) => self.visit_binary(b),
@@ -170,7 +170,7 @@ impl Interpreter {
     }
 
     /// Evaluates a variable declaration i.e. the initial definition of a variable. Has side effects: stores the variable in the current interpreter's `environment`.
-    pub fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object> {
+    fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object> {
         if let Some(initializer) = &v.initializer {
             let value = self.eval_expr(&initializer.expr)?;
             self.environment.define(&v.name, value.clone(), v.span)?;

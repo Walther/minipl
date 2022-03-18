@@ -1,7 +1,5 @@
-/// The metadata-ful, rich [Token] type for the Mini-PL language
-pub mod token;
+mod token;
 pub use token::Token;
 
-/// The bare `[RawToken]` type for the Mini-PL language
-pub mod rawtoken;
+mod rawtoken;
 pub use rawtoken::RawToken;

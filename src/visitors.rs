@@ -1,11 +1,11 @@
 use crate::parsing::{Expression, Statement};
 
 /// Prettyprinter for the abstract syntax tree
-pub mod astprinter;
+mod astprinter;
 pub use astprinter::ASTPrinter;
 
 /// Interpreter i.e. evaluator for the language
-pub mod interpreter;
+mod interpreter;
 pub use interpreter::Interpreter;
 
 use miette::Result;
