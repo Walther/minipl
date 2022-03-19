@@ -1,13 +1,14 @@
 #[cfg(test)]
 mod valid {
-    use minipl::lexing::scan;
+    use minipl::lexing::Lexer;
     use minipl::parsing::Parser;
     use minipl::visitors::Interpreter;
 
     #[test]
     fn empty() {
         let source = include_str!("sources/valid/empty.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -17,7 +18,8 @@ mod valid {
     #[test]
     fn newline() {
         let source = include_str!("sources/valid/newline.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -27,11 +29,10 @@ mod valid {
     #[test]
     fn comment() {
         let source = include_str!("sources/valid/comment.minipl");
-        let tokens = scan(source).unwrap();
-        dbg!(&tokens);
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse();
-        dbg!(&parsed);
         let mut interpreter = Interpreter::new();
         interpreter.eval(&parsed.unwrap()).unwrap();
     }
@@ -39,7 +40,8 @@ mod valid {
     #[test]
     fn helloworld() {
         let source = include_str!("sources/valid/helloworld.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -49,7 +51,8 @@ mod valid {
     #[test]
     fn hello_less_world() {
         let source = include_str!("sources/valid/hello_less_world.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -59,7 +62,8 @@ mod valid {
     #[test]
     fn hello_plus_world() {
         let source = include_str!("sources/valid/hello_plus_world.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -69,7 +73,8 @@ mod valid {
     #[test]
     fn one_plus_two_times_three() {
         let source = include_str!("sources/valid/one_plus_two_times_three.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -79,7 +84,8 @@ mod valid {
     #[test]
     fn var_with_assign() {
         let source = include_str!("sources/valid/var_with_assign.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -89,7 +95,8 @@ mod valid {
     #[test]
     fn var_without_assign() {
         let source = include_str!("sources/valid/var_without_assign.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -99,7 +106,8 @@ mod valid {
     #[test]
     fn var_bool() {
         let source = include_str!("sources/valid/var_bool.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -109,7 +117,8 @@ mod valid {
     #[test]
     fn var_string() {
         let source = include_str!("sources/valid/var_string.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -119,7 +128,8 @@ mod valid {
     #[test]
     fn logical_and() {
         let source = include_str!("sources/valid/logical_and.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -129,7 +139,8 @@ mod valid {
     #[test]
     fn for_zero_to_ten_print() {
         let source = include_str!("sources/valid/for_zero_to_ten_print.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -139,7 +150,8 @@ mod valid {
     #[test]
     fn assert_true() {
         let source = include_str!("sources/valid/for_zero_to_ten_print.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -149,7 +161,8 @@ mod valid {
     #[test]
     fn assert_truthy_comparison() {
         let source = include_str!("sources/valid/assert_truthy_comparison.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
@@ -160,7 +173,7 @@ mod valid {
 #[cfg(test)]
 mod invalid {
     use miette::{GraphicalReportHandler, GraphicalTheme, Report};
-    use minipl::lexing::scan;
+    use minipl::lexing::Lexer;
     use minipl::parsing::{ParseError, Parser};
     use minipl::visitors::Interpreter;
 
@@ -179,14 +192,14 @@ mod invalid {
     #[test]
     fn re_declaration() {
         let source = include_str!("sources/invalid/re_declaration.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let parsed = parser.parse().unwrap();
         let mut interpreter = Interpreter::new();
 
         if let Err(report) = interpreter.eval(&parsed) {
             let report = fmt_report(report);
-            dbg!(&report);
             assert!(report.contains("Variable error"));
             assert!(report.contains(
                 "Try removing the latter `var` to reassign, or use a different identifier"
@@ -199,7 +212,8 @@ mod invalid {
     #[test]
     fn var_equal_not_walrus() {
         let source = include_str!("sources/invalid/var_equal_not_walrus.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let result = parser.parse();
         assert!(matches!(result, Err(ParseError::ExpectedWalrus(_))));
@@ -208,7 +222,8 @@ mod invalid {
     #[test]
     fn assign_to_nonvariable() {
         let source = include_str!("sources/invalid/assign_to_nonvariable.minipl");
-        let tokens = scan(source).unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.scan().unwrap();
         let mut parser = Parser::new(tokens);
         let result = parser.parse();
         assert!(matches!(result, Err(ParseError::AssignToNonVariable(_, _))));

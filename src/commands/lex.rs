@@ -10,10 +10,11 @@ use tracing::info;
 
 pub fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
+    let mut lexer = Lexer::new(&source);
     let tokens = if verbose {
-        scan_verbose(&source)?
+        lexer.scan_verbose()?
     } else {
-        scan(&source)?
+        lexer.scan()?
     };
 
     if tokens.is_empty() || tokens[0].tokentype() == RawToken::EOF {

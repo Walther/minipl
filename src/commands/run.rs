@@ -1,9 +1,8 @@
 use std::fs;
 
-use minipl::lexing::scan;
-use minipl::parsing::Parser;
 use minipl::tokens::RawToken;
 use minipl::visitors::Interpreter;
+use minipl::{lexing::Lexer, parsing::Parser};
 
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
 use camino::Utf8PathBuf;
@@ -13,7 +12,8 @@ use tracing::info;
 pub fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
-    let tokens = scan(&source)?;
+    let mut lexer = Lexer::new(&source);
+    let tokens = lexer.scan()?;
     let mut colors = ColorGenerator::new();
 
     // 2. Error reporting for lexing
