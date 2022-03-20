@@ -15,8 +15,8 @@ pub(crate) use statement::*;
 pub mod variable;
 pub(crate) use variable::*;
 
-mod parse_error;
-pub use parse_error::ParseError;
+mod errors;
+pub use errors::ParseError;
 
 use crate::span::StartEndSpan;
 use crate::tokens::RawToken::{
@@ -25,7 +25,7 @@ use crate::tokens::RawToken::{
     Var,
 };
 use crate::tokens::Token;
-use parse_error::ParseError::*;
+use errors::ParseError::*;
 
 #[derive(Debug)]
 /// The parser for the Mini-PL programming language
