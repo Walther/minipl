@@ -277,9 +277,9 @@ impl Parser {
                     _ => return Err(EndMissingFor(format!("{:?}", next.token), next.span.into())),
                 }
             }
-            // Otherwise, parse full statements into the loop body
-            let statement = self.statement()?;
-            body.push(statement);
+            // Otherwise, parse full declarations into the loop body
+            let declaration = self.declaration()?;
+            body.push(declaration);
         }
 
         let last = body
