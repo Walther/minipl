@@ -196,6 +196,7 @@ impl Interpreter {
             self.environment.define(&v.name, value.clone(), v.span)?;
             Ok(value)
         } else {
+            // Language spec: "If not explicitly initialized, variables are assigned an appropriate default value."
             let default_value = match v.kind {
                 VarType::Bool => Object::Boolean(false),
                 VarType::Int => Object::Number(0),

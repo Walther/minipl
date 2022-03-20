@@ -1,0 +1,3 @@
+var x: int := 1;
+var y: string := "a";
+print x/y;
