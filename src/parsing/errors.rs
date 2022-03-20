@@ -7,10 +7,7 @@ use thiserror::Error;
 #[error("Parse error")]
 #[diagnostic()]
 pub enum ParseError {
-    NothingToParse(
-        #[label = "Nothing to parse. Source contained ignorable tokens only."] SourceSpan,
-    ),
-    MissingParen(#[label = "Expected ( after this grouping"] SourceSpan),
+    MissingParen(#[label = "Expected ) after this grouping"] SourceSpan),
     ExpectedExpression(
         String,
         #[label = "Expected expression, found token {0}"] SourceSpan,

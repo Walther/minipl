@@ -44,10 +44,7 @@ impl Parser {
 
     /// Parses the tokens, returning [`Vec<Statement>`] or [`ParseError`]
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
-        if self.tokens.len() == 0 {
-            return Err(NothingToParse((0, 0).into()));
-        }
-
+        // Collect a list of declarations
         let mut declarations: Vec<Statement> = Vec::new();
         while let Some(token) = self.tokens.peek() {
             // TODO: better handling
@@ -178,6 +175,7 @@ impl Parser {
                 ))
             }
             Semicolon => {
+                // No assignment, initialize with None
                 let span = StartEndSpan::new(var.span.start, next.span.end - 1);
                 Ok(Statement::new(
                     Stmt::VariableDefinition(Variable::new(&identifier, kind, None, span)),
@@ -188,11 +186,10 @@ impl Parser {
                 // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
                 Err(ExpectedAssignFoundEqual((next.span).into()))
             }
-            _ => {
-                // otherwise, missing semicolon
-                let span = StartEndSpan::new(var.span.start, next.span.end - 1);
-                Err(MissingSemicolon(span.into()))
-            }
+            _ => Err(ExpectedAssignFoundToken(
+                format!("{:?}", next),
+                next.span.into(),
+            )),
         }
     }
 
