@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug, Diagnostic)]
 #[error("Lexing error")]
 #[diagnostic()]
-/// The unrecoverable error enum for the [Lexer]
+/// The unrecoverable error enum for the [Lexer](crate::lexing::Lexer)
 pub enum UnrecoverableLexingError {
     /// Ran out of tokens while scanning
     OutOfChars(#[label = "Out of characters error. Lexer expected further input."] SourceSpan),
@@ -14,8 +14,8 @@ pub enum UnrecoverableLexingError {
     ParseIntError(#[label = "Could not parse this into a number (i64)"] SourceSpan),
 }
 
-/// The recoverable error enum for the [Lexer], these will go in [RawToken::Error](crate::tokens::RawToken::Error)
 #[derive(Debug, Clone, PartialEq)]
+/// The recoverable error enum for the [Lexer](crate::lexing::Lexer), these will go in [RawToken::Error](crate::tokens::RawToken::Error)
 pub enum RecoverableLexingError {
     /// Unknown escape code. Supported escape characters are: \\r \\t \\n \\' \\\"
     UnknownEscape,
