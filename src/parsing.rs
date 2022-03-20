@@ -362,7 +362,7 @@ impl Parser {
         let mut expr = self.equality()?;
         let spanstart = expr.span.start;
         while let Some(operator) = self.next_if_tokentype(&And) {
-            let right = self.comparison()?;
+            let right = self.equality()?;
             expr = Expression::new(
                 Expr::Logical(Logical::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
