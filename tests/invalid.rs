@@ -41,7 +41,7 @@ fn var_equal_not_walrus() {
     let tokens = lexer.scan().unwrap();
     let mut parser = Parser::new(tokens);
     let result = parser.parse();
-    assert!(matches!(result, Err(ParseError::ExpectedWalrus(_))));
+    assert!(matches!(result, Err(ParseError::ExpectedAssign(_))));
 }
 
 #[test]
