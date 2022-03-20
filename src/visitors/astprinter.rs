@@ -87,7 +87,7 @@ impl ASTPrinter {
     }
 
     fn visit_assign(&mut self, a: &Assign) -> Result<String> {
-        let exprs = vec![*a.value.clone()].into_iter();
+        let exprs = vec![a.value.expr.clone()].into_iter();
         self.nest_level += 1;
         let string = self.parenthesize_exprs(
             format!("Assign into variable, name: {:?}", a.name).as_str(),

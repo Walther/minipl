@@ -48,13 +48,13 @@ pub struct Assign {
     /// The [Token] used in this assignment
     pub token: Token,
     /// The [Expr] to evaluate and then assign as the new value of the variable
-    pub value: Box<Expr>,
+    pub value: Box<Expression>,
 }
 
 impl Assign {
     #[must_use]
     /// Creates a new [Assign] [Expression]
-    pub fn new(name: &str, token: Token, value: Expr) -> Self {
+    pub fn new(name: &str, token: Token, value: Expression) -> Self {
         Self {
             name: name.to_owned(),
             token,

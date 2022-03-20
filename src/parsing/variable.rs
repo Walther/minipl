@@ -10,9 +10,9 @@ use super::expression::Expression;
 /// Enum of the possible data types in the Mini-PL programming language. Boolean, Integer and Text.
 pub enum VarType {
     /// Boolean value, `true` or `false`
-    Bool,
+    Boolean,
     /// Integer value, internally represented as an [i64]
-    Int,
+    Number,
     /// Text value, internally represented as a [String]
     Text,
 }

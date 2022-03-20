@@ -43,8 +43,18 @@ impl Environment {
         value: Object,
         span: StartEndSpan,
     ) -> Result<Object, RuntimeError> {
-        if !self.values.contains_key(name) {
-            return Err(RuntimeError::VariableAssignToUndeclared(span.into()));
+        let current = match self.values.get(name) {
+            Some(v) => v,
+            None => return Err(RuntimeError::VariableAssignToUndeclared(span.into())),
+        };
+        // TODO: more robust type checking, going via tostring and format is ugly
+        if value.kind_to_string() != current.kind_to_string() {
+            return Err(RuntimeError::VariableAssignTypeMismatch(
+                current.kind_to_string(),
+                value.kind_to_string(),
+                span.into(),
+                span.into(),
+            ));
         }
         self.values.insert(name.to_owned(), value.clone());
         Ok(value)

@@ -84,4 +84,11 @@ pub enum RuntimeError {
     ),
     #[diagnostic(help = "Unable to find variable with name: {0}")]
     VariableGetFailed(String), // TODO: span
+    #[diagnostic(help = "Variable assignment type mismatch, expected: {0} got: {1}")]
+    VariableAssignTypeMismatch(
+        String,
+        String,
+        #[label = "{0}"] SourceSpan,
+        #[label = "{1}"] SourceSpan,
+    ),
 }

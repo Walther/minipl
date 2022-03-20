@@ -140,11 +140,10 @@ impl Parser {
         }
 
         // get type annotation
-        // TODO: parse time typechecking? or just at run time?
         let next = self.maybe_next()?;
         let kind = match next.tokentype() {
-            Bool => VarType::Bool,
-            Int => VarType::Int,
+            Bool => VarType::Boolean,
+            Int => VarType::Number,
             RawToken::String => VarType::Text,
             _ => {
                 return Err(ExpectedTypeAnnotation(
@@ -349,7 +348,9 @@ impl Parser {
             };
             expr = Expression::new(
                 Expr::Assign(crate::parsing::expression::Assign::new(
-                    &name, assign, right.expr,
+                    &name,
+                    assign,
+                    right.clone(),
                 )),
                 StartEndSpan::new(spanstart, right.span.end),
             );

@@ -172,3 +172,33 @@ fn variable_get_failed() {
     let result = interpreter.eval(&parsed);
     assert!(matches!(result, Err(VariableGetFailed(_))));
 }
+
+#[test]
+fn variable_assign_type_mismatch() {
+    let source = include_str!("../sources/invalid/variable_assign_type_mismatch.minipl");
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.scan().unwrap();
+    let mut parser = Parser::new(tokens);
+    let parsed = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.eval(&parsed);
+    assert!(matches!(
+        result,
+        Err(VariableAssignTypeMismatch(_, _, _, _))
+    ));
+}
+
+#[test]
+fn variable_assign_type_mismatch2() {
+    let source = include_str!("../sources/invalid/variable_assign_type_mismatch2.minipl");
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.scan().unwrap();
+    let mut parser = Parser::new(tokens);
+    let parsed = parser.parse().unwrap();
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.eval(&parsed);
+    assert!(matches!(
+        result,
+        Err(VariableAssignTypeMismatch(_, _, _, _))
+    ));
+}

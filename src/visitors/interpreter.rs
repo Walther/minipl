@@ -185,7 +185,7 @@ impl Interpreter {
 
     /// Evaluates a variable assignment. Has side effects: stores the variable in the current interpreter's `environment`.
     fn visit_assign(&mut self, a: &Assign) -> Result<Object, RuntimeError> {
-        let value = self.eval_expr(&a.value)?;
+        let value = self.eval_expr(&a.value.expr)?;
         self.environment.assign(&a.name, value, a.token.span)
     }
 
@@ -193,13 +193,22 @@ impl Interpreter {
     fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object, RuntimeError> {
         if let Some(initializer) = &v.initializer {
             let value = self.eval_expr(&initializer.expr)?;
+            // TODO: more robust type checking, going via tostring and format is ugly
+            if value.kind_to_string() != format!("{:?}", v.kind) {
+                return Err(RuntimeError::VariableAssignTypeMismatch(
+                    format!("{:?}", v.kind),
+                    value.kind_to_string(),
+                    v.span.into(),
+                    initializer.span.into(),
+                ));
+            }
             self.environment.define(&v.name, value.clone(), v.span)?;
             Ok(value)
         } else {
             // Language spec: "If not explicitly initialized, variables are assigned an appropriate default value."
             let default_value = match v.kind {
-                VarType::Bool => Object::Boolean(false),
-                VarType::Int => Object::Number(0),
+                VarType::Boolean => Object::Boolean(false),
+                VarType::Number => Object::Number(0),
                 VarType::Text => Object::Text("".to_owned()),
             };
             self.environment
