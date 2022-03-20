@@ -4,11 +4,11 @@ use crate::tokens::RawToken::{
 };
 use crate::tokens::Token;
 
-use super::{Lexer, LexingError};
+use super::{Lexer, UnrecoverableLexingError};
 
 impl Lexer<'_> {
     /// Internal helper function for scanning identifiers. Greedy / maximal munch, consumes all consecutive ascii-alphabetic chars.
-    pub(crate) fn scan_identifier(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_identifier(&mut self) -> Result<Token, UnrecoverableLexingError> {
         // Grab the start location from the current, unconsumed char
         let &(start, _) = self.maybe_peek()?;
         let mut length = 0;

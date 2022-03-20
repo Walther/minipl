@@ -2,13 +2,14 @@ use crate::span::StartEndSpan;
 
 use super::Error;
 use super::Lexer;
-use super::LexingError;
 use super::Range;
+use super::RecoverableLexingError;
 use super::Token;
+use super::UnrecoverableLexingError;
 
 impl Lexer<'_> {
     /// Internal helper function for scanning a lexeme that starts with a dot. This could be a [Range], or a lexing error.
-    pub(crate) fn scan_range(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_range(&mut self) -> Result<Token, UnrecoverableLexingError> {
         // Consume this token to peek the next
         let (start, _) = self.maybe_next()?;
         // Is this a Range operator?
@@ -17,7 +18,7 @@ impl Lexer<'_> {
         } else {
             // Otherwise, we have a parse error
             Ok(Token::new(
-                Error("Expected another '.' for Range operator".into()),
+                Error(RecoverableLexingError::SingleDot),
                 StartEndSpan::new(start, start + 1),
             ))
         }
@@ -35,7 +36,7 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let token = lexer.scan().unwrap()[0].clone();
         let expected = Token::new(
-            Error("Expected another '.' for Range operator".into()),
+            Error(RecoverableLexingError::SingleDot),
             StartEndSpan::new(0, 1),
         );
         assert_eq!(token, expected);

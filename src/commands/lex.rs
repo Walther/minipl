@@ -11,10 +11,21 @@ use tracing::info;
 pub fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
     let mut lexer = Lexer::new(&source);
-    let tokens = if verbose {
-        lexer.scan_verbose()?
+    let scan_results = if verbose {
+        lexer.scan_verbose()
     } else {
-        lexer.scan()?
+        lexer.scan()
+    };
+
+    // Handle possilbe UnrecoverableLexingError
+    let tokens = match scan_results {
+        Ok(tokens) => tokens,
+        Err(err) => {
+            // Print an additional newline to clear possible outputs
+            println!();
+            let report: miette::Report = err;
+            return Err(report.with_source_code(source));
+        }
     };
 
     if tokens.is_empty() || tokens[0].tokentype() == RawToken::EOF {
@@ -41,8 +52,6 @@ pub fn lex(path: Utf8PathBuf, verbose: bool) -> Result<()> {
         .finish()
         .print((&path, Source::from(&source)))
         .unwrap();
-
-    // TODO: should we print miette errors on lexing errors?
 
     Ok(())
 }

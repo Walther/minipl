@@ -1,3 +1,5 @@
+use crate::lexing::RecoverableLexingError;
+
 /// All raw tokens (also known as lexemes) of the Mini-PL programming language.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RawToken {
@@ -73,7 +75,7 @@ pub enum RawToken {
     /// Comment type. Exists for the internal convenience of the lexer.
     Comment,
     /// Error type. Exists for propagating lexing errors with helpful messages to the user.
-    Error(String),
+    Error(RecoverableLexingError),
     /// Whitespace type. Exists for the internal convenience of the lexer.
     Whitespace,
 

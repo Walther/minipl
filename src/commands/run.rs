@@ -13,10 +13,20 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
     // 1. Lexing
     let source: String = fs::read_to_string(&path).into_diagnostic()?;
     let mut lexer = Lexer::new(&source);
-    let tokens = lexer.scan()?;
-    let mut colors = ColorGenerator::new();
+    let scan_results = lexer.scan();
+    // 2. Error reporting for UnrecoverableLexingError
+    let tokens = match scan_results {
+        Ok(tokens) => tokens,
+        Err(err) => {
+            // Print an additional newline to clear possible outputs
+            println!();
+            let report: miette::Report = err;
+            return Err(report.with_source_code(source));
+        }
+    };
 
-    // 2. Error reporting for lexing
+    // 3. Error reporting for RecoverableLexingError
+    let mut colors = ColorGenerator::new();
     if tokens
         .iter()
         .any(|token| matches!(token.token, RawToken::Error(_)))
@@ -40,7 +50,7 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
             .unwrap();
     }
 
-    // 3. Parsing
+    // 4. Parsing
     if tokens.is_empty() {
         info!("Nothing to execute. Source contained ignorable tokens only.");
         return Ok(());
@@ -55,7 +65,7 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
         }
     };
 
-    // 4. Evaluation
+    // 5. Evaluation
     let mut interpreter = Interpreter::default();
     match interpreter.eval(&statements) {
         // NOTE: we discard any returned values

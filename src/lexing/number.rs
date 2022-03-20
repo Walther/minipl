@@ -1,15 +1,15 @@
 use crate::span::StartEndSpan;
 
 use super::Lexer;
-use super::LexingError;
 use super::Number;
 use super::Token;
+use super::UnrecoverableLexingError;
 
 use std::string::String;
 
 impl Lexer<'_> {
     /// Internal helper function for scanning a number literal.
-    pub(crate) fn scan_number(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_number(&mut self) -> Result<Token, UnrecoverableLexingError> {
         let mut number = String::new();
         let &(start, _) = self.maybe_peek()?;
         let mut length = 0;
@@ -21,7 +21,11 @@ impl Lexer<'_> {
 
         let number: i64 = match number.parse() {
             Ok(n) => n,
-            Err(_) => return Err(LexingError::ParseIntError((start, length).into())),
+            Err(_) => {
+                return Err(UnrecoverableLexingError::ParseIntError(
+                    (start, length).into(),
+                ))
+            }
         };
         let end = start + length;
         Ok(Token::new(Number(number), StartEndSpan::new(start, end)))

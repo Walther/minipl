@@ -2,13 +2,13 @@ use crate::span::StartEndSpan;
 
 use super::Comment;
 use super::Lexer;
-use super::LexingError;
 use super::Slash;
 use super::Token;
+use super::UnrecoverableLexingError;
 
 impl Lexer<'_> {
     /// Internal helper function for scanning a lexeme that starts with a slash. This could be a [Comment], or just a [Slash].
-    pub(crate) fn scan_slash(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_slash(&mut self) -> Result<Token, UnrecoverableLexingError> {
         // TODO: remove unwraps
         // Consume the first slash & grab the start location
         let (start, _) = self.maybe_next()?;

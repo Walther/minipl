@@ -6,13 +6,11 @@ use std::{
 use miette::Result;
 use tracing::debug;
 
-use miette::{Diagnostic, SourceSpan};
-use thiserror::Error;
-
 use crate::tokens::Token;
 use crate::{span::StartEndSpan, tokens::RawToken::*};
 
-use LexingError::*;
+mod errors;
+pub use errors::*;
 
 // implementation split into multiple files for convenience
 mod colon;
@@ -80,7 +78,7 @@ impl<'a> Lexer<'a> {
     /// # Errors
     /// The Error case of this Result will only occur when an **unrecoverable** runtime error occurs in the parser itself.
     /// Any parse errors for the source code will be returned as [Token]s with type [`RawToken::Error`](crate::tokens::RawToken::Error) in order to recover error locations for use in error reporting for the user.
-    pub fn scan_token(&mut self) -> Result<Token, LexingError> {
+    pub fn scan_token(&mut self) -> Result<Token, UnrecoverableLexingError> {
         let &(start, char) = self.maybe_peek()?;
 
         let token: Token = match char {
@@ -123,7 +121,7 @@ impl<'a> Lexer<'a> {
                 // Consume and report
                 self.iter.next();
                 Token::new(
-                    Error(format!("Unknown token {char}")),
+                    Error(RecoverableLexingError::UnknownChar(char)),
                     StartEndSpan::new(start, start + 1),
                 )
             }
@@ -144,35 +142,24 @@ impl<'a> Lexer<'a> {
     }
 
     /// Internal helper: returns the peeked next token, or an OutOfTokens error
-    fn maybe_peek(&mut self) -> Result<&(usize, char), LexingError> {
+    fn maybe_peek(&mut self) -> Result<&(usize, char), UnrecoverableLexingError> {
         if let Some(next) = self.iter.peek() {
             Ok(next)
         } else {
-            // TODO: proper error span!
-            Err(OutOfChars((0, 0).into()))
+            let span = StartEndSpan::new(self.source.len(), self.source.len());
+            Err(UnrecoverableLexingError::OutOfChars(span.into()))
         }
     }
 
     /// Internal helper: consumes and returns the next token, or an OutOfTokens error
-    fn maybe_next(&mut self) -> Result<(usize, char), LexingError> {
+    fn maybe_next(&mut self) -> Result<(usize, char), UnrecoverableLexingError> {
         if let Some(next) = self.iter.next() {
             Ok(next)
         } else {
-            // TODO: proper error span!
-            Err(OutOfChars((0, 0).into()))
+            let span = StartEndSpan::new(self.source.len(), self.source.len());
+            Err(UnrecoverableLexingError::OutOfChars(span.into()))
         }
     }
-}
-
-#[derive(Error, Debug, Diagnostic)]
-#[error("Parse error")]
-#[diagnostic()]
-/// The error enum for the [Lexer]
-pub enum LexingError {
-    /// Ran out of tokens while scanning
-    OutOfChars(SourceSpan),
-    /// Unable to parse into an integer
-    ParseIntError(#[label = "Could not parse this into a number (i64)"] SourceSpan),
 }
 
 #[cfg(test)]

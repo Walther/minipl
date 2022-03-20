@@ -3,12 +3,12 @@ use crate::span::StartEndSpan;
 use super::Assign;
 use super::Colon;
 use super::Lexer;
-use super::LexingError;
 use super::Token;
+use super::UnrecoverableLexingError;
 
 impl Lexer<'_> {
     /// Internal helper function for scanning a lexeme that starts with a colon. This could be an [Assign], or just a [Colon].
-    pub(crate) fn scan_colon(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_colon(&mut self) -> Result<Token, UnrecoverableLexingError> {
         // Consume this token to peek the next
         let (start, _) = self.maybe_next()?;
         // Is this an Assign operator?

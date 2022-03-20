@@ -1,13 +1,13 @@
 use crate::span::StartEndSpan;
 
 use super::Lexer;
-use super::LexingError;
 use super::Token;
+use super::UnrecoverableLexingError;
 use super::Whitespace;
 
 /// Internal helper function for scanning and skipping over whitespace. Greedy / maximal munch.
 impl Lexer<'_> {
-    pub(crate) fn scan_whitespace(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_whitespace(&mut self) -> Result<Token, UnrecoverableLexingError> {
         let &(start, _) = self.maybe_peek()?;
         let mut length = 0;
 

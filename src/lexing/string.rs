@@ -2,18 +2,15 @@ use crate::span::StartEndSpan;
 
 use super::Error;
 use super::Lexer;
-use super::LexingError;
+use super::RecoverableLexingError;
 use super::Text;
 use super::Token;
+use super::UnrecoverableLexingError;
 use std::string::String;
-
-static ERROR_STRING_UNTERMINATED_OR_NEWLINE: &str = "Unterminated string or unescaped newline";
-static ERROR_STRING_UNKNOWN_ESCAPE: &str =
-    "Unknown character escape sequence or unescaped backslash";
 
 impl<'a> Lexer<'a> {
     /// Internal helper function for scanning a string literal. Returns a [Token] with [`RawToken::Text(String)`]
-    pub(crate) fn scan_string(&mut self) -> Result<Token, LexingError> {
+    pub(crate) fn scan_string(&mut self) -> Result<Token, UnrecoverableLexingError> {
         // Consume the first quote
         let (start, _) = self.maybe_next()?;
         let mut length = 1;
@@ -26,7 +23,7 @@ impl<'a> Lexer<'a> {
             // Specification forbids unescaped newlines
             if char == '\n' {
                 return Ok(Token::new(
-                    Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
+                    Error(RecoverableLexingError::Unterminated),
                     StartEndSpan::new(start, length),
                 ));
             }
@@ -43,7 +40,7 @@ impl<'a> Lexer<'a> {
                     '\\' => contents.push('\\'),
                     _ => {
                         return Ok(Token::new(
-                            Error(ERROR_STRING_UNKNOWN_ESCAPE.into()),
+                            Error(RecoverableLexingError::UnknownEscape),
                             StartEndSpan::new(start, start + length),
                         ))
                     }
@@ -63,7 +60,7 @@ impl<'a> Lexer<'a> {
             ))
         } else {
             Ok(Token::new(
-                Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
+                Error(RecoverableLexingError::Unterminated),
                 StartEndSpan::new(start, start + length),
             ))
         }
@@ -73,7 +70,7 @@ impl<'a> Lexer<'a> {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]
-    use crate::lexing::string::*;
+    use super::RecoverableLexingError;
     use crate::lexing::*;
 
     #[test]
@@ -92,7 +89,7 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let token = lexer.scan().unwrap()[0].clone();
         let expected = Token::new(
-            Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
+            Error(RecoverableLexingError::Unterminated),
             StartEndSpan::new(0, 1),
         );
         assert_eq!(token, expected);
@@ -105,7 +102,7 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let token = lexer.scan().unwrap()[0].clone();
         let expected = Token::new(
-            Error(ERROR_STRING_UNTERMINATED_OR_NEWLINE.into()),
+            Error(RecoverableLexingError::Unterminated),
             StartEndSpan::new(0, 7),
         );
         assert_eq!(token, expected);
@@ -117,7 +114,7 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let token = lexer.scan().unwrap()[0].clone();
         let expected = Token::new(
-            Error(ERROR_STRING_UNKNOWN_ESCAPE.into()),
+            Error(RecoverableLexingError::UnknownEscape),
             StartEndSpan::new(0, 3),
         );
         assert_eq!(token, expected);
