@@ -67,17 +67,17 @@ impl Assign {
 /// Binary expression. Any expression that applies an operator between two sub-expressions.
 pub struct Binary {
     /// Left hand side of the binary expression
-    pub left: Box<Expr>,
+    pub left: Box<Expression>,
     /// The operator of this binary expression
     pub operator: Token,
     /// Right hand side of the binary expression
-    pub right: Box<Expr>,
+    pub right: Box<Expression>,
 }
 
 impl Binary {
     #[must_use]
     /// Creates a new [Binary] [Expression]
-    pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
+    pub fn new(left: Expression, operator: Token, right: Expression) -> Self {
         Self {
             left: Box::new(left),
             operator,
@@ -90,13 +90,13 @@ impl Binary {
 /// Grouping expression. These are constructed with the use of parens `()`.
 pub struct Grouping {
     /// The expression contained within this grouping
-    pub expression: Box<Expr>,
+    pub expression: Box<Expression>,
 }
 
 impl Grouping {
     #[must_use]
     /// Creates a new [Grouping] [Expression]
-    pub fn new(expression: Expr) -> Self {
+    pub fn new(expression: Expression) -> Self {
         Self {
             expression: Box::new(expression),
         }
@@ -122,17 +122,17 @@ impl Literal {
 /// Logical operator expression. Currently, only logical AND `&` exists.
 pub struct Logical {
     /// Left hand side of the logical expression
-    pub left: Box<Expr>,
+    pub left: Box<Expression>,
     /// The operator of this logical expression
     pub operator: Token,
     /// Right hand side of the logical expression
-    pub right: Box<Expr>,
+    pub right: Box<Expression>,
 }
 
 impl Logical {
     #[must_use]
     /// Creates a new [Logical] [Expression]
-    pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
+    pub fn new(left: Expression, operator: Token, right: Expression) -> Self {
         Self {
             left: Box::new(left),
             operator,
@@ -147,13 +147,13 @@ pub struct Unary {
     /// The operator for this unary expression
     pub operator: Token,
     /// The expression to which to apply the unary operator
-    pub right: Box<Expr>,
+    pub right: Box<Expression>,
 }
 
 impl Unary {
     #[must_use]
     /// Creates a new [Unary] [Expression]
-    pub fn new(operator: Token, right: Expr) -> Self {
+    pub fn new(operator: Token, right: Expression) -> Self {
         Self {
             operator,
             right: Box::new(right),

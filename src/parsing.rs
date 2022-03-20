@@ -366,7 +366,7 @@ impl Parser {
         while let Some(operator) = self.next_if_tokentype(&And) {
             let right = self.comparison()?;
             expr = Expression::new(
-                Expr::Logical(Logical::new(expr.expr, operator, right.expr)),
+                Expr::Logical(Logical::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             );
         }
@@ -379,7 +379,7 @@ impl Parser {
         while let Some(operator) = self.next_if_tokentype(&Equal) {
             let right = self.comparison()?;
             expr = Expression::new(
-                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                Expr::Binary(Binary::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             );
         }
@@ -392,7 +392,7 @@ impl Parser {
         while let Some(operator) = self.next_if_tokentype(&Less) {
             let right = self.term()?;
             expr = Expression::new(
-                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                Expr::Binary(Binary::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             );
         }
@@ -405,7 +405,7 @@ impl Parser {
         while let Some(operator) = self.next_if_tokentype2(&Minus, &Plus) {
             let right = self.factor()?;
             expr = Expression::new(
-                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                Expr::Binary(Binary::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             );
         }
@@ -418,7 +418,7 @@ impl Parser {
         while let Some(operator) = self.next_if_tokentype2(&Slash, &Star) {
             let right = self.unary()?;
             expr = Expression::new(
-                Expr::Binary(Binary::new(expr.expr, operator, right.expr)),
+                Expr::Binary(Binary::new(expr, operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             );
         }
@@ -431,7 +431,7 @@ impl Parser {
         if let Some(operator) = self.next_if_tokentype2(&Bang, &Minus) {
             let right = self.unary()?;
             return Ok(Expression::new(
-                Expr::Unary(Unary::new(operator, right.expr)),
+                Expr::Unary(Unary::new(operator, right.clone())),
                 StartEndSpan::new(spanstart, right.span.end),
             ));
         }
@@ -452,7 +452,7 @@ impl Parser {
                 let expr = self.expression()?;
                 if let Some(_token) = self.next_if_tokentype(&ParenRight) {
                     Ok(Expression::new(
-                        Expr::Grouping(Grouping::new(expr.expr)),
+                        Expr::Grouping(Grouping::new(expr.clone())),
                         expr.span,
                     ))
                 } else {
@@ -500,9 +500,9 @@ mod tests {
         let expected = Statement::new(
             Stmt::Expression(Expression::new(
                 Expr::Binary(Binary::new(
-                    Expr::Literal(Literal::new(one1)),
+                    Expression::new(Expr::Literal(Literal::new(one1)), StartEndSpan::new(0, 1)),
                     equal,
-                    Expr::Literal(Literal::new(one2)),
+                    Expression::new(Expr::Literal(Literal::new(one2)), StartEndSpan::new(2, 3)),
                 )),
                 StartEndSpan::new(0, 3),
             )),

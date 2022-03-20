@@ -1,6 +1,8 @@
 /// Runtime [Object] type of the Mini-PL language
-pub mod object;
+mod object;
 pub use object::Object;
 /// Runtime [Environment] type of the Mini-PL language, used for variable storage
-pub mod environment;
+mod environment;
 pub use environment::Environment;
+mod errors;
+pub use errors::RuntimeError;

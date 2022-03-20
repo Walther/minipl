@@ -10,8 +10,9 @@ use crate::{
 
 use super::Visitor;
 use crate::parsing::*;
+use crate::runtime::RuntimeError;
 
-use miette::{miette, Result};
+use miette::Result;
 use tracing::debug;
 
 #[derive(Debug, Default)]
@@ -33,7 +34,7 @@ impl Interpreter {
 
 impl Interpreter {
     /// The primary function of the [Interpreter]: evaluates all statements
-    pub fn eval(&mut self, statements: &[Statement]) -> Result<()> {
+    pub fn eval(&mut self, statements: &[Statement]) -> Result<(), RuntimeError> {
         for statement in statements {
             let result = self.visit_statement(statement)?;
             debug!("Interpreted: {result:?}");
@@ -46,7 +47,7 @@ impl Interpreter {
 
     //TODO: this should probably be private or deprecated
     /// Internal helper function: evaluates a single [Expr], a raw metadata-less version of [Expression]
-    fn eval_expr(&mut self, expr: &Expr) -> Result<Object> {
+    fn eval_expr(&mut self, expr: &Expr) -> Result<Object, RuntimeError> {
         match expr {
             Expr::Assign(a) => self.visit_assign(a),
             Expr::Binary(b) => self.visit_binary(b),
@@ -58,9 +59,11 @@ impl Interpreter {
         }
     }
 
-    fn visit_binary(&mut self, b: &Binary) -> Result<Object> {
-        let right = self.eval_expr(&b.right)?;
-        let left = self.eval_expr(&b.left)?;
+    // TODO: clean up the .expr. stuff
+
+    fn visit_binary(&mut self, b: &Binary) -> Result<Object, RuntimeError> {
+        let right = self.eval_expr(&b.right.expr)?;
+        let left = self.eval_expr(&b.left.expr)?;
         let tokentype = b.operator.tokentype();
         let result = match tokentype {
             Minus => Object::Number(left.as_numeric()? - right.as_numeric()?),
@@ -73,12 +76,13 @@ impl Interpreter {
                 (Object::Text(_), Object::Text(_)) => {
                     Object::Text(format!("{}{}", left.as_text()?, right.as_text()?))
                 }
-                (_, _) => {
-                    return Err(miette!(
-                    "Plus operator can only be used for Number+Number or Text+Text, got: {:?} + {:?}",
-                    left.clone(),
-                    right.clone()
-                ))
+                (l_object, r_object) => {
+                    return Err(RuntimeError::PlusTypeMismatch(
+                        l_object.kind_to_string(),
+                        r_object.kind_to_string(),
+                        b.left.span.into(),
+                        b.right.span.into(),
+                    ))
                 }
             },
             Equal => match (&left, &right) {
@@ -88,12 +92,13 @@ impl Interpreter {
                 (Object::Text(_), Object::Text(_)) => {
                     Object::Boolean(left.as_text()? == right.as_text()?)
                 }
-                (_, _) => {
-                    return Err(miette!(
-                    "Equal operator can only be used for Number=Number or Text=Text, got: {:?} = {:?}",
-                    left.clone(),
-                    right.clone()
-                ))
+                (l_object, r_object) => {
+                    return Err(RuntimeError::EqualTypeMismatch(
+                        l_object.kind_to_string(),
+                        r_object.kind_to_string(),
+                        b.left.span.into(),
+                        b.right.span.into(),
+                    ))
                 }
             },
             Less => match (&left, &right) {
@@ -103,74 +108,89 @@ impl Interpreter {
                 (Object::Text(_), Object::Text(_)) => {
                     Object::Boolean(left.as_text()? < right.as_text()?)
                 }
-                (_, _) => {
-                    return Err(miette!(
-                    "Less operator can only be used for Number<Number or Text<Text, got: {:?} < {:?}",
-                    left.clone(),
-                    right.clone()
-                ))
+                (l_object, r_object) => {
+                    return Err(RuntimeError::LessTypeMismatch(
+                        l_object.kind_to_string(),
+                        r_object.kind_to_string(),
+                        b.left.span.into(),
+                        b.right.span.into(),
+                    ))
                 }
             },
-            _ => return Err(miette!("Unexpected unary operator: {:?}", b.operator)),
+            _ => {
+                return Err(RuntimeError::UnexpectedBinaryOperator(
+                    format!("{:?}", b.operator.token),
+                    b.operator.span.into(),
+                ))
+            }
         };
         Ok(result)
     }
 
-    fn visit_grouping(&mut self, g: &Grouping) -> Result<Object> {
+    fn visit_grouping(&mut self, g: &Grouping) -> Result<Object, RuntimeError> {
         // Ignore the grouping; evaluate inner expression
-        self.eval_expr(&g.expression)
+        self.eval_expr(&g.expression.expr)
     }
 
-    fn visit_literal(&mut self, l: &Literal) -> Result<Object> {
+    fn visit_literal(&mut self, l: &Literal) -> Result<Object, RuntimeError> {
         let result = match &l.value.token {
             Number(n) => Object::Number(*n),
             Text(t) => Object::Text(t.clone()),
             False => Object::Boolean(false),
             True => Object::Boolean(true),
-            _ => return Err(miette!("Unexpected literal: {:?}", l.value.token)),
+            _ => {
+                return Err(RuntimeError::UnexpectedLiteral(
+                    format!("{:?}", l.value.token),
+                    l.value.span.into(),
+                ))
+            }
         };
         Ok(result)
     }
 
-    fn visit_logical(&mut self, l: &Logical) -> Result<Object> {
-        let right = self.eval_expr(&l.right)?;
-        let left = self.eval_expr(&l.left)?;
+    fn visit_logical(&mut self, l: &Logical) -> Result<Object, RuntimeError> {
+        let right = self.eval_expr(&l.right.expr)?;
+        let left = self.eval_expr(&l.left.expr)?;
         let tokentype = l.operator.tokentype();
         let result = match tokentype {
             And => Object::Boolean(left.as_bool()? && right.as_bool()?),
-            _ => return Err(miette!("Unexpected logical operator: {:?}", l.operator)),
+            _ => {
+                return Err(RuntimeError::UnexpectedLogicalOperator(
+                    format!("{:?}", l.operator.token),
+                    l.operator.span.into(),
+                ))
+            }
         };
         Ok(result)
     }
 
-    fn visit_unary(&mut self, u: &Unary) -> Result<Object> {
-        let right = self.eval_expr(&u.right)?;
+    fn visit_unary(&mut self, u: &Unary) -> Result<Object, RuntimeError> {
+        let right = self.eval_expr(&u.right.expr)?;
         let result = match u.operator.tokentype() {
             Minus => Object::Number(-right.as_numeric()?),
             Bang => Object::Boolean(!right.as_bool()?),
-            _ => return Err(miette!("Unexpected unary operator: {:?}", u.operator)),
+            _ => {
+                return Err(RuntimeError::UnexpectedUnaryOperator(
+                    format!("{:?}", u.operator.token),
+                    u.operator.span.into(),
+                ))
+            }
         };
         Ok(result)
     }
 
-    fn visit_variable_usage(&self, name: &str) -> Result<Object> {
+    fn visit_variable_usage(&self, name: &str) -> Result<Object, RuntimeError> {
         self.environment.get(name)
     }
 
     /// Evaluates a variable assignment. Has side effects: stores the variable in the current interpreter's `environment`.
-    fn visit_assign(&mut self, a: &Assign) -> Result<Object> {
+    fn visit_assign(&mut self, a: &Assign) -> Result<Object, RuntimeError> {
         let value = self.eval_expr(&a.value)?;
-        match self.environment.assign(&a.name, value, a.token.span) {
-            Ok(o) => Ok(o),
-            Err(_e) => {
-                // TODO: proper bubbling up of EnvironmentError
-                return Err(miette!("Failed to assign variable: {:?}", a.name));
-            }
-        }
+        self.environment.assign(&a.name, value, a.token.span)
     }
 
     /// Evaluates a variable declaration i.e. the initial definition of a variable. Has side effects: stores the variable in the current interpreter's `environment`.
-    fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object> {
+    fn eval_variable_declaration(&mut self, v: &Variable) -> Result<Object, RuntimeError> {
         if let Some(initializer) = &v.initializer {
             let value = self.eval_expr(&initializer.expr)?;
             self.environment.define(&v.name, value.clone(), v.span)?;
@@ -188,12 +208,12 @@ impl Interpreter {
     }
 }
 
-impl Visitor<Object> for Interpreter {
-    fn visit_expression(&mut self, expression: &Expression) -> Result<Object> {
+impl Visitor<Object, RuntimeError> for Interpreter {
+    fn visit_expression(&mut self, expression: &Expression) -> Result<Object, RuntimeError> {
         self.eval_expr(&expression.expr)
     }
 
-    fn visit_statement(&mut self, statement: &Statement) -> Result<Object> {
+    fn visit_statement(&mut self, statement: &Statement) -> Result<Object, RuntimeError> {
         let expr = match &statement.stmt {
             Stmt::Assert(e) => {
                 let result = self.visit_expression(e)?;
@@ -202,9 +222,9 @@ impl Visitor<Object> for Interpreter {
                         if bool {
                             return Ok(Object::Nothing);
                         }
-                        return Err(miette!("Assertion failed: {:?}", e.expr));
+                        return Err(RuntimeError::AssertionFailed(e.span.into()));
                     }
-                    Err(_) => return Err(miette!("Assert statement must evaluate to a boolean")),
+                    Err(_) => return Err(RuntimeError::AssertExprNotTruthy(e.span.into())),
                 };
             }
             Stmt::Expression(expr) | Stmt::Print(expr) => expr,
@@ -215,18 +235,24 @@ impl Visitor<Object> for Interpreter {
                 let stdin = io::stdin();
                 stdin
                     .read_line(&mut buffer)
-                    .map_err(|_| return miette!("Failed to read a variable from stdin"))?;
+                    .map_err(|_| RuntimeError::ReadLineFailed)?;
                 let old = self.environment.get(name)?;
                 let new = match old {
-                    Object::Number(_) => Object::Number(buffer.trim().parse().map_err(|_| {
-                        return miette!("Failed to parse the read variable into an int");
-                    })?),
+                    Object::Number(_) => Object::Number(
+                        buffer
+                            .trim()
+                            .parse()
+                            .map_err(|_| RuntimeError::ReadParseIntFailed)?,
+                    ),
                     Object::Text(_) => Object::Text(buffer),
-                    Object::Boolean(_) => Object::Boolean(buffer.trim().parse().map_err(|_| {
-                        return miette!("Failed to parse the read variable into a boolean");
-                    })?),
+                    Object::Boolean(_) => Object::Boolean(
+                        buffer
+                            .trim()
+                            .parse()
+                            .map_err(|_| RuntimeError::ReadParseBoolFailed)?,
+                    ),
                     Object::Nothing => {
-                        return Err(miette!("Internal error, writing to a Nothing value"))
+                        return Err(RuntimeError::ReadNothing);
                     }
                 };
                 let object = self.environment.assign(name, new, statement.span)?;
@@ -240,20 +266,33 @@ impl Visitor<Object> for Interpreter {
                 let start = self.visit_expression(&f.left)?;
                 let start = match start.as_numeric() {
                     Ok(num) => num,
-                    Err(_) => return Err(miette!("For loop start must be numeric")),
+                    Err(_) => {
+                        return Err(RuntimeError::ForStartNonNumeric(
+                            start.to_string(),
+                            f.left.span.into(),
+                        ))
+                    }
                 };
                 let end = self.visit_expression(&f.right)?;
                 let end = match end.as_numeric() {
                     Ok(num) => num,
-                    Err(_) => return Err(miette!("For loop end must be numeric")),
+                    Err(_) => {
+                        return Err(RuntimeError::ForEndNonNumeric(
+                            end.to_string(),
+                            f.right.span.into(),
+                        ))
+                    }
                 };
                 if start > end {
-                    return Err(miette!("For loop end must be larger than start"));
+                    return Err(RuntimeError::ForEndLarger(
+                        f.left.span.into(),
+                        f.right.span.into(),
+                    ));
                 }
                 for i in start..=end {
                     match self.environment.assign(&name, Object::Number(i), f.span) {
                         Ok(_) => (),
-                        Err(_) => return Err(miette!("Assignment error during for loop")),
+                        Err(_) => return Err(RuntimeError::ForBadAssignment(name, f.span.into())),
                     };
                     for statement in &f.body {
                         self.visit_statement(statement)?;
@@ -268,7 +307,7 @@ impl Visitor<Object> for Interpreter {
             print!("{}", result);
             io::stdout()
                 .flush()
-                .map_err(|_| miette!("Runtime error: could not flush stdout after print"))?;
+                .map_err(|_| RuntimeError::PrintCouldNotFlush)?;
         };
 
         Ok(result)

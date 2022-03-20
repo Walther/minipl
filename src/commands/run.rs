@@ -78,7 +78,7 @@ pub fn run(path: Utf8PathBuf) -> Result<()> {
         Err(err) => {
             // Print an additional newline to clear the output line
             println!();
-            let report: miette::Report = err;
+            let report: miette::Report = err.into();
             Err(report.with_source_code(source))
         }
     }

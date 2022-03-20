@@ -1,4 +1,4 @@
-use miette::Result;
+use miette::{Error, Result};
 
 use crate::parsing::{Statement, Stmt, Variable};
 
@@ -23,7 +23,7 @@ impl ASTPrinter {
     }
 
     /// The primary function of the [ASTPrinter]: returns the prettyprinted [String] representation of the abstract syntax tree of the program
-    pub fn print(&mut self, statement: &Statement) -> Result<String> {
+    pub fn print(&mut self, statement: &Statement) -> Result<String, Error> {
         self.visit_statement(statement)
     }
 
@@ -31,7 +31,7 @@ impl ASTPrinter {
         &mut self,
         name: &str,
         exprs: impl Iterator<Item = Expr>,
-    ) -> Result<String> {
+    ) -> Result<String, Error> {
         let mut string = String::new();
         // TODO: less hacky indent tree
         if self.nest_level > 0 {
@@ -97,8 +97,10 @@ impl ASTPrinter {
         Ok(string)
     }
 
+    // TODO: clean up the .expr. nesting stuff
+
     fn visit_binary(&mut self, b: &Binary) -> Result<String> {
-        let exprs = vec![*b.left.clone(), *b.right.clone()].into_iter();
+        let exprs = vec![b.left.expr.clone(), b.right.expr.clone()].into_iter();
         self.nest_level += 1;
         let string = self.parenthesize_exprs(format!("{:?}", b.operator.token).as_str(), exprs)?;
         self.nest_level -= 1;
@@ -106,7 +108,7 @@ impl ASTPrinter {
     }
 
     fn visit_grouping(&mut self, g: &Grouping) -> Result<String> {
-        let exprs = vec![*g.expression.clone()].into_iter();
+        let exprs = vec![g.expression.expr.clone()].into_iter();
         self.nest_level += 1;
         let string = self.parenthesize_exprs("Group", exprs)?;
         self.nest_level -= 1;
@@ -121,7 +123,7 @@ impl ASTPrinter {
     }
 
     fn visit_logical(&mut self, l: &Logical) -> Result<String> {
-        let exprs = vec![*l.left.clone(), *l.right.clone()].into_iter();
+        let exprs = vec![l.left.expr.clone(), l.right.expr.clone()].into_iter();
         self.nest_level += 1;
         let string =
             self.parenthesize_exprs(format!("Logical: {:?}", l.operator.token).as_str(), exprs)?;
@@ -130,7 +132,7 @@ impl ASTPrinter {
     }
 
     fn visit_unary(&mut self, u: &Unary) -> Result<String> {
-        let exprs = vec![*u.right.clone()].into_iter();
+        let exprs = vec![u.right.expr.clone()].into_iter();
         self.nest_level += 1;
         let string = self.parenthesize_exprs(format!("{:?}", u.operator).as_str(), exprs)?;
         self.nest_level -= 1;
@@ -162,12 +164,12 @@ impl ASTPrinter {
     }
 }
 
-impl Visitor<String> for ASTPrinter {
-    fn visit_expression(&mut self, expression: &Expression) -> Result<String> {
+impl Visitor<String, Error> for ASTPrinter {
+    fn visit_expression(&mut self, expression: &Expression) -> Result<String, Error> {
         self.visit_expr(&expression.expr)
     }
 
-    fn visit_statement(&mut self, statement: &Statement) -> Result<String> {
+    fn visit_statement(&mut self, statement: &Statement) -> Result<String, Error> {
         match &statement.stmt {
             Stmt::Assert(e) => Ok(format!("Assert: {}", self.visit_expression(e)?)),
             Stmt::Expression(e) => self.visit_expression(e),

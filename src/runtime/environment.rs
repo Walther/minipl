@@ -1,9 +1,10 @@
-use miette::{miette, Diagnostic, Result, SourceSpan};
+use miette::Result;
 use std::collections::HashMap;
-use thiserror::Error;
 
 use crate::runtime::Object;
 use crate::span::StartEndSpan;
+
+use super::RuntimeError;
 
 /// Environment is a scoping storage for variables
 #[derive(Debug, Default, Clone)]
@@ -19,20 +20,20 @@ impl Environment {
         name: &str,
         value: Object,
         span: StartEndSpan,
-    ) -> Result<(), EnvironmentError> {
+    ) -> Result<(), RuntimeError> {
         if self.values.contains_key(name) {
-            return Err(EnvironmentError::ReDeclaration(span.into()));
+            return Err(RuntimeError::VariableReDeclaration(span.into()));
         }
         self.values.insert(name.to_owned(), value);
         Ok(())
     }
 
     /// Gets the value of the variable with the given name from the [Environment]
-    pub fn get(&self, name: &str) -> Result<Object> {
+    pub fn get(&self, name: &str) -> Result<Object, RuntimeError> {
         self.values
             .get(name)
             .cloned()
-            .ok_or_else(|| return miette!(format!("Undefined variable: {name}")))
+            .ok_or_else(|| RuntimeError::VariableGetFailed(name.to_owned()))
     }
 
     /// Assigns a new value to an existing variable in the [Environment].
@@ -41,28 +42,11 @@ impl Environment {
         name: &str,
         value: Object,
         span: StartEndSpan,
-    ) -> Result<Object, EnvironmentError> {
+    ) -> Result<Object, RuntimeError> {
         if !self.values.contains_key(name) {
-            return Err(EnvironmentError::AssignToUndeclared(span.into()));
+            return Err(RuntimeError::VariableAssignToUndeclared(span.into()));
         }
         self.values.insert(name.to_owned(), value.clone());
         Ok(value)
     }
-}
-
-#[derive(Error, Debug, Diagnostic)]
-#[error("Variable error")]
-#[diagnostic()]
-/// Enum for the errors that can occur within the use of an [Environment]
-pub enum EnvironmentError {
-    #[diagnostic(help(
-        "Try removing the latter `var` to reassign, or use a different identifier"
-    ))]
-    /// Attempted re-declaration of a variable. Each identifier may be declared once only
-    ReDeclaration(#[label = "Attempted to re-declare existing variable name"] SourceSpan),
-    #[diagnostic(help("Use the keyword `var` to declare the variable"))]
-    /// Attempted to assign to an undeclared variable. All variables must be declared before use
-    AssignToUndeclared(
-        #[label = "Attempted to assign to a variable that has not been declared"] SourceSpan,
-    ),
 }

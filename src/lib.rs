@@ -27,7 +27,7 @@ pub mod tokens;
 pub mod visitors;
 
 /// The runtime features of Mini-PL language
-mod runtime;
+pub mod runtime;
 
 /// Internal span helper
 mod span;
