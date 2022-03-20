@@ -186,7 +186,7 @@ impl Parser {
             }
             Equal => {
                 // Help the user: if we find an Equal operator after the type initializer, the user probably meant to use Assign
-                Err(ExpectedAssign((next.span).into()))
+                Err(ExpectedAssignFoundEqual((next.span).into()))
             }
             _ => {
                 // otherwise, missing semicolon
