@@ -4,6 +4,8 @@ An interpreter for the Mini-PL programming language.
 
 Course project for the Spring 2022 Compilers class at University of Helsinki.
 
+![lexing report](lexing.png)
+
 ## Requirements
 
 The Minimum Supported Rust Version (MSRV) is `1.58.1`.
