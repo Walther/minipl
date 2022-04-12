@@ -6,6 +6,8 @@ Course project for the Spring 2022 Compilers class at University of Helsinki.
 
 ![lexing report](lexing.png)
 
+Automatically built documentation available at <https://walther.github.io/minipl/minipl/>.
+
 ## Requirements
 
 The Minimum Supported Rust Version (MSRV) is `1.58.1`.
