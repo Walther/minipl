@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["RawToken","All raw tokens (also known as lexemes) of the Mini-PL programming language."]],"struct":[["Token","A richer [Token] type that wraps the [`RawToken`] type, and holds more metadata."]]});

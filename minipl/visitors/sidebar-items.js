@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ASTPrinter","[ASTPrinter] is a [Visitor] for prettyprinting the abstract syntax tree of the program"],["Interpreter","[Interpreter] is a [Visitor] for interpreting i.e. evaluating the program"]],"trait":[["Visitor","The main visitor trait for the visitor pattern. See e.g. Rust Design Patterns: Visitor"]]});

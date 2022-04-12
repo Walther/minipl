@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ParseError",""]],"mod":[["expression","Expressions in the Mini-PL programming language."],["statement","Statements in the Mini-PL programming language."],["variable","Variables in the Mini-PL programming language."]],"struct":[["Parser","The parser for the Mini-PL programming language"]]});

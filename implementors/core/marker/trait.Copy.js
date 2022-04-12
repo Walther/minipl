@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["minipl"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.60.0/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"struct\" href=\"minipl/struct.StartEndSpan.html\" title=\"struct minipl::StartEndSpan\">StartEndSpan</a>","synthetic":false,"types":["minipl::span::StartEndSpan"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

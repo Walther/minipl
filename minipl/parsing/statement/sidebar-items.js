@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Stmt","Low-level enum containing all possible statement variants."]],"struct":[["Statement","A richer [Statement] type that wraps the [Stmt] enum, and holds more metadata."]]});

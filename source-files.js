@@ -1,0 +1,3 @@
+var N = null;var sourcesIndex = {};
+sourcesIndex["minipl"] = {"name":"","dirs":[{"name":"lexing","files":["colon.rs","errors.rs","identifier.rs","number.rs","range.rs","slash.rs","string.rs","whitespace.rs"]},{"name":"parsing","files":["errors.rs","expression.rs","forloop.rs","statement.rs","variable.rs"]},{"name":"runtime","files":["environment.rs","errors.rs","object.rs"]},{"name":"tokens","files":["rawtoken.rs","token.rs"]},{"name":"visitors","files":["astprinter.rs","interpreter.rs"]}],"files":["lexing.rs","lib.rs","parsing.rs","runtime.rs","span.rs","tokens.rs","visitors.rs"]};
+createSourceSidebar();

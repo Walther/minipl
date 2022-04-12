@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Object","The main enum of the runtime values within the language interpretation process"],["RuntimeError","Runtime errors of the interpreter"]],"struct":[["Environment","Environment is a scoping storage for variables"]]});

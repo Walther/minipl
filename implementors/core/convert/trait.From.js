@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["minipl"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.60.0/core/convert/trait.From.html\" title=\"trait core::convert::From\">From</a>&lt;<a class=\"struct\" href=\"minipl/struct.StartEndSpan.html\" title=\"struct minipl::StartEndSpan\">StartEndSpan</a>&gt; for SourceSpan","synthetic":false,"types":["miette::protocol::SourceSpan"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
